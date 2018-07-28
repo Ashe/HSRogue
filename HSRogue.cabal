@@ -20,10 +20,5 @@ executable HSRogue
   build-depends:        base >= 4.7 && < 5,
                         apecs,
                         gloss,
-                        containers,
-                        mtl,
-                        template-haskell,
-                        async,
-                        vector,
-                        QuickCheck,
-                        linear
+                        linear,
+                        random

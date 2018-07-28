@@ -1,0 +1,3 @@
+:cd-ghc /home/ashe/Documents/HSRogue/
+:add /home/ashe/Documents/HSRogue/src/Main.hs
+:module +
