@@ -22,3 +22,6 @@ executable HSRogue
                         gloss,
                         linear,
                         random
+  other-modules:        Common,
+                        Components,
+                        EventHandler
