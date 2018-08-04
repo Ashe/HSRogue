@@ -4,11 +4,13 @@ module Components
 ( Player(..)
 , Time(..)
 , Position(..)
+, Sprite(..)
 ) where
 
 import Apecs
 import Apecs.Stores
 import Linear
+import Graphics.Gloss
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time
@@ -25,3 +27,6 @@ instance Component Player where type Storage Player = Unique Player
 newtype Position = Position (V2 Int) deriving Show
 instance Component Position where type Storage Position = Map Position
 
+-- Used to store the graphics of entities
+newtype Sprite = Sprite (Maybe Picture)
+instance Component Sprite where type Storage Sprite = Map Sprite

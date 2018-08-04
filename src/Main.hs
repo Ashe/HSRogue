@@ -15,13 +15,15 @@ import Graphics.Gloss.Interface.IO.Game
 import System.Random
 import Control.Monad
 import Data.Monoid
+import Data.Maybe
 
 import Common
 import Components
 import EventHandler
+import ImageLoad
 
-initialise :: System' ()
-initialise = void $ newEntity (Player, Position playerPos)
+initialise :: Maybe Picture -> System' ()
+initialise sp = void $ newEntity (Player, Position playerPos, Sprite sp)
 
 incrTime :: Double -> System' ()
 incrTime dT = modify 0 $ \(Time t) -> Time (t+dT)
@@ -37,9 +39,9 @@ step :: Double -> System' ()
 step dT = do
   incrTime dT
 
-drawComponents :: Get World c => (c -> Picture) -> System' Picture
-drawComponents f = cfold
-  (\pic (Position p, c) -> pic <> translate' p (f c))
+drawComponents :: Get World comp => (comp -> Picture) -> System' Picture
+drawComponents picFunc = cfold
+  (\pic (Position p, comp) -> pic <> translate' p (picFunc comp))
   mempty
 
 translate' :: V2 Int -> Picture -> Picture
@@ -49,7 +51,7 @@ square :: Picture
 square = Line [(0.5,0.5),(0.5,-0.5),(-0.5,-0.5),(-0.5,0.5),(0.5,0.5)]
 
 draw :: System' Picture
-draw = drawComponents $ \Player -> color white . scale 10 10 $ square
+draw = drawComponents $ \(Sprite maybePic) -> fromMaybe Blank maybePic 
 
 playGloss :: w
           -> System w Picture
@@ -69,5 +71,6 @@ playGloss world drawSys eventSys stepSys =
 main :: IO ()
 main = do
   w <- initWorld
-  runSystem initialise w
+  img <- getSprite "Assets/sprites.png"
+  runSystem (initialise img) w
   playGloss w draw handleEvent step

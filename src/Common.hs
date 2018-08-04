@@ -16,7 +16,8 @@ import Linear
 import Components
 
 -- Uses templateHaskell to create the data 'World'
-makeWorld "World" [''Time, ''Player, ''Position] 
+-- also creates initWorld
+makeWorld "World" [''Time, ''Player, ''Position, ''Sprite] 
 
 -- Easy type synonym for systems
 type System' a = System World a

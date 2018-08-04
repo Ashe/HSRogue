@@ -20,8 +20,11 @@ executable HSRogue
   build-depends:        base >= 4.7 && < 5,
                         apecs,
                         gloss,
+                        gloss-juicy,
+                        JuicyPixels,
                         linear,
                         random
   other-modules:        Common,
                         Components,
-                        EventHandler
+                        EventHandler,
+                        ImageLoad
