@@ -22,11 +22,25 @@ import Components
 import EventHandler
 import ImageLoad
 
+-- Initialises the world with it's first system:
+-- this system simply creates an entity
 initialise :: Maybe Picture -> System' ()
-initialise sp = void $ newEntity (Player, Position playerPos, Sprite sp)
+initialise sp = void $ newEntity 
+  ( Player
+  , Position playerPos
+  , CellRef playerCellRef
+  , Sprite sp)
 
+-- When called, manipulates the global time component
 incrTime :: Double -> System' ()
 incrTime dT = modify 0 $ \(Time t) -> Time (t+dT)
+
+-- Converts cell references to game position
+snapEntities :: Double -> System' ()
+snapEntities dT =
+  cmap $ \(Position (V2 x y), CellRef (V2 cellX cellY)) ->
+    Position (V2 (calc cellX) (calc cellY))
+      where calc n = worldScale * fromIntegral n
 
 triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
 triggerEvery dT period phase sys = do
@@ -38,13 +52,14 @@ triggerEvery dT period phase sys = do
 step :: Double -> System' ()
 step dT = do
   incrTime dT
+  snapEntities dT
 
 drawComponents :: Get World comp => (comp -> Picture) -> System' Picture
 drawComponents picFunc = cfold
   (\pic (Position p, comp) -> pic <> translate' p (picFunc comp))
   mempty
 
-translate' :: V2 Int -> Picture -> Picture
+translate' :: V2 Double -> Picture -> Picture
 translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
 
 square :: Picture

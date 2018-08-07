@@ -7,8 +7,10 @@ module Common
 , initWorld
 , System'
 , Direction(..)
+, worldScale
 , directionToVect
 , playerPos
+, playerCellRef
 , playerSpeed
 ) where
 
@@ -19,7 +21,7 @@ import Components
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''Player, ''Position, ''Sprite] 
+makeWorld "World" [''Time, ''Player, ''Position, ''CellRef, ''Sprite] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -27,7 +29,7 @@ type System' a = System World a
 -- Directions
 data Direction = 
   Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
-  deriving (Show)
+  deriving Show
 
 -- Conversion to int vector for calculations
 directionToVect :: Direction -> V2 Int
@@ -41,9 +43,14 @@ directionToVect dir = case dir of
                         Common.Left -> V2 (-1) 0
                         UpLeft -> V2 (-1) 1
 
-playerPos :: V2 Int
+worldScale :: Double
+worldScale = 30
+
+playerPos :: V2 Double
 playerPos = V2 0 0
+
+playerCellRef :: V2 Int
+playerCellRef = V2 0 0
 
 playerSpeed :: Int
 playerSpeed = 1
-

@@ -36,4 +36,4 @@ handleEvent _ = return ()
 movePlayer :: Direction -> System' ()
 movePlayer dir = 
   let (V2 i j) = directionToVect dir in
-  cmap $ \(Player, Position (V2 x y)) -> Position (V2 (x + i * playerSpeed) (y + j * playerSpeed))
+  cmap $ \(Player, CellRef (V2 x y)) -> CellRef (V2 (x + i * playerSpeed) (y + j * playerSpeed))

@@ -4,6 +4,7 @@ module Components
 ( Player(..)
 , Time(..)
 , Position(..)
+, CellRef(..)
 , Sprite(..)
 ) where
 
@@ -24,8 +25,12 @@ data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
 -- Used to store the position of game entities
-newtype Position = Position (V2 Int) deriving Show
+newtype Position = Position (V2 Double) deriving Show
 instance Component Position where type Storage Position = Map Position
+
+-- Used to store the cell reference of an entity
+newtype CellRef = CellRef (V2 Int) deriving Show
+instance Component CellRef where type Storage CellRef = Map CellRef
 
 -- Used to store the graphics of entities
 newtype Sprite = Sprite (Maybe Picture)
