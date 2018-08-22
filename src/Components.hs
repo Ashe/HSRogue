@@ -5,13 +5,12 @@ module Components
 , Time(..)
 , Position(..)
 , CellRef(..)
-, Sprite(..)
+-- , Sprite(..)
 ) where
 
 import Apecs
 import Apecs.Stores
-import Linear
-import Graphics.Gloss
+import SDL
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time
@@ -33,5 +32,5 @@ newtype CellRef = CellRef (V2 Int) deriving Show
 instance Component CellRef where type Storage CellRef = Map CellRef
 
 -- Used to store the graphics of entities
-newtype Sprite = Sprite (Maybe Picture)
-instance Component Sprite where type Storage Sprite = Map Sprite
+-- newtype Sprite = Sprite (Maybe Picture)
+-- instance Component Sprite where type Storage Sprite = Map Sprite

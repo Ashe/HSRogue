@@ -15,13 +15,14 @@ module Common
 ) where
 
 import Apecs
-import Linear
+import SDL
 
 import Components
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''Player, ''Position, ''CellRef, ''Sprite] 
+-- makeWorld "World" [''Time, ''Player, ''Position, ''CellRef, ''Sprite] 
+makeWorld "World" [''Time, ''Player, ''Position, ''CellRef] 
 
 -- Easy type synonym for systems
 type System' a = System World a

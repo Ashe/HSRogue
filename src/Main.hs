@@ -1,21 +1,23 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-import Apecs
+import Apecs 
 import Apecs.Core
 import Apecs.Stores
 import Apecs.Util
 
-import Linear
-import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game
+import SDL.Vect
+import SDL(($=))
+import qualified SDL
 
-import System.Random
 import Control.Monad
 import Data.Monoid
 import Data.Maybe
+
+import System.Exit (exitSuccess)
 
 import Common
 import Components
@@ -24,12 +26,11 @@ import ImageLoad
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
-initialise :: Maybe Picture -> System' ()
-initialise sp = void $ newEntity 
+initialise :: System' ()
+initialise = void $ newEntity 
   ( Player
   , Position playerPos
-  , CellRef playerCellRef
-  , Sprite sp)
+  , CellRef playerCellRef)
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()
@@ -54,38 +55,46 @@ step dT = do
   incrTime dT
   snapEntities dT
 
-drawComponents :: Get World comp => (comp -> Picture) -> System' Picture
-drawComponents picFunc = cfold
-  (\pic (Position p, comp) -> pic <> translate' p (picFunc comp))
-  mempty
+--drawComponents :: Get World comp => (comp -> Picture) -> System' Picture
+--drawComponents picFunc = cfold
+--  (\pic (Position p, comp) -> pic <> translate' p (picFunc comp))
+--  mempty
 
-translate' :: V2 Double -> Picture -> Picture
-translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
+-- translate' :: V2 Double -> Picture -> Picture
+-- translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
 
-square :: Picture
-square = Line [(0.5,0.5),(0.5,-0.5),(-0.5,-0.5),(-0.5,0.5),(0.5,0.5)]
-
-draw :: System' Picture
-draw = drawComponents $ \(Sprite maybePic) -> fromMaybe Blank maybePic 
-
-playGloss :: w
-          -> System w Picture
-          -> (Event -> System w ())
-          -> (Double -> System w ())
-          -> IO ()
-playGloss world drawSys eventSys stepSys =
-  playIO
-    window black fps ()
-    (\_    -> runSystem drawSys world)
-    (\e _  -> runSystem (eventSys e) world)
-    (\dt _ -> runSystem (stepSys $ realToFrac dt) world)
-  where
-    window = InWindow "App" (2560,1400) (10,10)
-    fps = 200
+-- draw :: System' Picture
+-- draw = drawComponents $ \(Sprite maybePic) -> fromMaybe Blank maybePic 
 
 main :: IO ()
 main = do
   w <- initWorld
-  img <- getSprite "Assets/sprites.png"
-  runSystem (initialise img) w
-  playGloss w draw handleEvent step
+  -- img <- getSprite "Assets/sprites.png"
+  
+  -- Initialise SDL with a window
+  SDL.initialize [SDL.InitVideo]
+  window <- SDL.createWindow "App" SDL.defaultWindow
+  renderer <-
+      SDL.createRenderer window (-1)
+        SDL.RendererConfig
+          { SDL.rendererType = SDL.AcceleratedRenderer
+          , SDL.rendererTargetTexture = False
+          }
+
+  SDL.showWindow window
+
+  let loop = do
+        events <- map SDL.eventPayload <$> SDL.pollEvents
+        let quit = SDL.QuitEvent `elem` events
+
+        SDL.rendererDrawColor renderer $= V4 0 0 0 0
+        SDL.clear renderer
+        SDL.present renderer
+        unless quit loop
+
+  -- Begin looping
+  loop 
+  SDL.destroyRenderer renderer
+  SDL.destroyWindow window
+  SDL.quit
+  exitSuccess
