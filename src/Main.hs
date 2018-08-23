@@ -55,21 +55,21 @@ step dT = do
   incrTime dT
   snapEntities dT
 
---drawComponents :: Get World comp => (comp -> Picture) -> System' Picture
---drawComponents picFunc = cfold
---  (\pic (Position p, comp) -> pic <> translate' p (picFunc comp))
---  mempty
+drawComponents :: Get World comp => SDL.Renderer -> (comp -> (String, SDL.Rectangle Int)) -> System' (IO ())
+drawComponents r f = cfold
+  (\i (Position p, comp, Textures texs) -> let (fp, rect) = f comp in 
+                                             i <> SDL.copyEx r Nothing (Just rect) Nothing 0 Nothing (V2 False False))
+  mempty
 
 -- translate' :: V2 Double -> Picture -> Picture
 -- translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
 
--- draw :: System' Picture
--- draw = drawComponents $ \(Sprite maybePic) -> fromMaybe Blank maybePic 
+draw :: SDL.Renderer -> System' (IO ())
+draw renderer = drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
 
 main :: IO ()
 main = do
-  w <- initWorld
-  -- img <- getSprite "Assets/sprites.png"
+  world <- initWorld
   
   -- Initialise SDL with a window
   SDL.initialize [SDL.InitVideo]
@@ -83,17 +83,25 @@ main = do
 
   SDL.showWindow window
 
-  let loop = do
-        events <- map SDL.eventPayload <$> SDL.pollEvents
-        let quit = SDL.QuitEvent `elem` events
+  let loop prevTicks = do
+        ticks <- SDL.ticks
+        payload <- map SDL.eventPayload <$> SDL.pollEvents
+        let quit = SDL.QuitEvent `elem` payload
+            dt = fromIntegral $ ticks - prevTicks
+
+        runSystem (handlePayload payload) world
+        runSystem (step dt) world
 
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
+
+        runSystem (draw renderer) world
+
         SDL.present renderer
-        unless quit loop
+        unless quit $ loop ticks
 
   -- Begin looping
-  loop 
+  loop 0
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
   SDL.quit

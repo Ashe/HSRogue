@@ -5,12 +5,14 @@ module Components
 , Time(..)
 , Position(..)
 , CellRef(..)
--- , Sprite(..)
+, Textures(..)
+, Sprite(..)
 ) where
 
 import Apecs
 import Apecs.Stores
 import SDL
+import qualified Data.HashMap as HM
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time
@@ -31,6 +33,12 @@ instance Component Position where type Storage Position = Map Position
 newtype CellRef = CellRef (V2 Int) deriving Show
 instance Component CellRef where type Storage CellRef = Map CellRef
 
--- Used to store the graphics of entities
--- newtype Sprite = Sprite (Maybe Picture)
--- instance Component Sprite where type Storage Sprite = Map Sprite
+-- Global store of all textures
+newtype Textures = Textures (HM.Map String Texture)
+instance Component Textures where type Storage Textures = Global Textures
+instance Semigroup Textures where (<>) = mappend
+instance Monoid Textures where mempty = Textures HM.empty
+
+-- Used to store the texture coordinates of a sprite
+data Sprite = Sprite String (Rectangle Int)
+instance Component Sprite where type Storage Sprite = Map Sprite

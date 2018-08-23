@@ -1,5 +1,5 @@
 module EventHandler
-( handleEvent
+( handlePayload
 ) where
 
 import Apecs
@@ -13,11 +13,15 @@ import SDL
 import Common hiding (Left, Right, Down, Up)
 import qualified Common as C
 import Components
+
+-- Handle the entire event payload
+handlePayload :: [EventPayload] -> System' ()
+handlePayload = foldl (\_ ev -> handleEvent ev) (pure ()) 
   
 -- The main event handler function for dealing with keypresses
-handleEvent :: Event -> System' ()
-handleEvent (Event _ payload) = 
-  case payload of
+handleEvent :: EventPayload -> System' ()
+handleEvent ev = 
+  case ev of
     KeyboardEvent ev -> handleKeyEvent ev
     _ -> pure ()
 

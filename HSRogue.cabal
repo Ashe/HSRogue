@@ -21,7 +21,8 @@ executable HSRogue
                         apecs,
                         sdl2,
                         sdl2-image,
-                        sdl2-ttf
+                        sdl2-ttf,
+                        hashmap
   other-modules:        Common,
                         Components,
                         EventHandler,
