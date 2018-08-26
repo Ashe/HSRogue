@@ -32,18 +32,20 @@ handleKeyEvent ev =
     _ -> pure ()
 
 -- Move the player in a direction using move speed
-movePlayer :: Direction -> System' ()
-movePlayer dir = 
+movePlayer :: Maybe Direction -> System' ()
+movePlayer (Just dir) = 
   let (V2 i j) = directionToVect dir in
   cmap $ \(Player, CellRef (V2 x y)) -> CellRef (V2 (x + i * playerSpeed) (y + j * playerSpeed))
+movePlayer _ = pure ()
 
 -- Find a direction of movement from scancode
-findDir :: Scancode -> Direction
-findDir ScancodeW = C.Up
-findDir ScancodeUp = C.Up
-findDir ScancodeD = C.Right
-findDir ScancodeRight = C.Right
-findDir ScancodeS = C.Down
-findDir ScancodeDown = C.Down
-findDir ScancodeA = C.Left
-findDir ScancodeLeft = C.Left
+findDir :: Scancode -> Maybe Direction
+findDir ScancodeW = Just C.Up
+findDir ScancodeUp = Just C.Up
+findDir ScancodeD = Just C.Right
+findDir ScancodeRight = Just C.Right
+findDir ScancodeS = Just C.Down
+findDir ScancodeDown = Just C.Down
+findDir ScancodeA = Just C.Left
+findDir ScancodeLeft = Just C.Left
+findDir _ = Nothing

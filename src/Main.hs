@@ -18,19 +18,25 @@ import Data.Monoid
 import Data.Maybe
 
 import System.Exit (exitSuccess)
+import qualified Data.HashMap as HM
 
 import Common
 import Components
 import EventHandler
 import ImageLoad
 
+import Debug.Trace as D
+
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
-initialise :: System' ()
-initialise = void $ newEntity 
-  ( Player
-  , Position playerPos
-  , CellRef playerCellRef)
+initialise :: Resources -> System' ()
+initialise r = void $ do
+  modify 0 (\(Textures texs) -> createTextureComp r)
+  newEntity 
+    ( Player
+    , Position playerPos
+    , CellRef playerCellRef
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 0 0)) (V2 50 50)))
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()
@@ -43,6 +49,7 @@ snapEntities dT =
     Position (V2 (calc cellX) (calc cellY))
       where calc n = worldScale * fromIntegral n
 
+-- Runs a system periodically
 triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
 triggerEvery dT period phase sys = do
   Time t <- get global
@@ -50,22 +57,26 @@ triggerEvery dT period phase sys = do
       trigger = floor (t'/period) /= floor ((t'+dT)/period)
   when trigger $ void sys
 
+-- Main step system
 step :: Double -> System' ()
 step dT = do
   incrTime dT
   snapEntities dT
 
+-- Render things depending on their components
 drawComponents :: Get World comp => SDL.Renderer -> (comp -> (String, SDL.Rectangle Int)) -> System' (IO ())
 drawComponents r f = cfold
-  (\i (Position p, comp, Textures texs) -> let (fp, rect) = f comp in 
-                                             i <> SDL.copyEx r Nothing (Just rect) Nothing 0 Nothing (V2 False False))
+  (\img (Position p, comp, Textures texs) -> 
+    let (fp, rect) = f comp in
+      case HM.lookup fp texs of
+      (Just tex) -> D.trace "RENDERING TEXTURE" img <> SDL.copyEx r tex (Just $ toCIntRect rect) Nothing 0 Nothing (V2 False False)
+      _ -> D.trace "NO TEXTURE" img)
   mempty
 
--- translate' :: V2 Double -> Picture -> Picture
--- translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
 
+-- Main draw system
 draw :: SDL.Renderer -> System' (IO ())
-draw renderer = drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
+draw renderer = D.trace "DRAW FUNC" drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
 
 main :: IO ()
 main = do
@@ -82,6 +93,9 @@ main = do
           }
 
   SDL.showWindow window
+
+  resources <- loadTextures renderer ["Assets/sprites.png"]
+  runSystem (initialise resources) world
 
   let loop prevTicks = do
         ticks <- SDL.ticks

@@ -9,6 +9,7 @@ module Common
 , Direction(..)
 , worldScale
 , directionToVect
+, toCIntRect
 , playerPos
 , playerCellRef
 , playerSpeed
@@ -16,6 +17,7 @@ module Common
 
 import Apecs
 import SDL
+import Foreign.C
 
 import Components
 
@@ -32,7 +34,7 @@ data Direction =
   Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
   deriving Show
 
--- Conversion to int vector for calculations
+-- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
 directionToVect UpRight = V2 1 1
 directionToVect Common.Right = V2 1 0
@@ -42,6 +44,11 @@ directionToVect DownLeft = V2 (-1) (-1)
 directionToVect Common.Left = V2 (-1) 0
 directionToVect UpLeft = V2 (-1) 1
 directionToVect _ = V2 0 0
+
+-- Conversion from Int Rectangle to CInt Rectangle
+toCIntRect :: Rectangle Int -> Rectangle CInt
+toCIntRect (Rectangle (P (V2 x y)) (V2 i j)) = 
+  Rectangle (P (V2 (fromIntegral x) (fromIntegral y))) (V2 (fromIntegral i) (fromIntegral j))
 
 worldScale :: Double
 worldScale = 30
