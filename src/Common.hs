@@ -57,7 +57,7 @@ toCIntV2 :: V2 Double -> V2 CInt
 toCIntV2 (V2 x y) = V2 (round x) (round y)
 
 worldScale :: Double
-worldScale = 30
+worldScale = 32
 
 playerPos :: V2 Double
 playerPos = V2 0 0
