@@ -8,10 +8,12 @@ import Apecs
 import Apecs.Core
 import Apecs.Stores
 import Apecs.Util
+import Apecs.System
 
 import SDL.Vect
 import SDL(($=))
 import qualified SDL
+import qualified SDL.Image(quit)
 
 import Control.Monad
 import Data.Monoid
@@ -25,8 +27,6 @@ import Components
 import EventHandler
 import ImageLoad
 
-import Debug.Trace as D
-
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
 initialise :: Resources -> System' ()
@@ -36,7 +36,7 @@ initialise r = void $ do
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 0 0)) (V2 50 50)))
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 32 32)) (V2 16 16)))
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()
@@ -65,18 +65,20 @@ step dT = do
 
 -- Render things depending on their components
 drawComponents :: Get World comp => SDL.Renderer -> (comp -> (String, SDL.Rectangle Int)) -> System' (IO ())
-drawComponents r f = cfold
-  (\img (Position p, comp, Textures texs) -> 
-    let (fp, rect) = f comp in
-      case HM.lookup fp texs of
-      (Just tex) -> D.trace "RENDERING TEXTURE" img <> SDL.copyEx r tex (Just $ toCIntRect rect) Nothing 0 Nothing (V2 False False)
-      _ -> D.trace "NO TEXTURE" img)
-  mempty
+drawComponents r f = do
+  Textures texs <- get global
+  cfold
+    (\img (Position p, comp) ->
+      let (fp, rect) = f comp in
+        case HM.lookup fp texs of
+          Just tex -> img <> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize)) 0 Nothing (V2 False False)
+          _ -> img)
+    mempty
 
 
 -- Main draw system
 draw :: SDL.Renderer -> System' (IO ())
-draw renderer = D.trace "DRAW FUNC" drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
+draw renderer = drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
 
 main :: IO ()
 main = do
@@ -109,7 +111,7 @@ main = do
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
 
-        runSystem (draw renderer) world
+        join $ runSystem (draw renderer) world
 
         SDL.present renderer
         unless quit $ loop ticks
@@ -118,5 +120,6 @@ main = do
   loop 0
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
+  SDL.Image.quit
   SDL.quit
   exitSuccess
