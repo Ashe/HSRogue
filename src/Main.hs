@@ -26,12 +26,14 @@ import Common
 import Components
 import EventHandler
 import ImageLoad
+import GameMap
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
 initialise :: Resources -> System' ()
 initialise r = void $ do
-  modify 0 (\(Textures texs) -> createTextureComp r)
+  modify global (\(TextureComp _) -> TextureComp $ createTextureComp r)
+  modify global (\(GameMapComp _) -> GameMapComp $ generateBlankMap (V2 50 50) Empty)
   newEntity 
     ( Player
     , Position playerPos
@@ -63,23 +65,17 @@ step dT = do
   incrTime dT
   snapEntities dT
 
--- Render things depending on their components
-drawComponents :: Get World comp => SDL.Renderer -> (comp -> (String, SDL.Rectangle Int)) -> System' (IO ())
-drawComponents r f = do
-  Textures texs <- get global
-  cfold
-    (\img (Position p, comp) ->
-      let (fp, rect) = f comp in
-        case HM.lookup fp texs of
-          Just tex -> img <> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize)) 0 Nothing (V2 False False)
-          _ -> img)
-    mempty
+-- Produce a system used for drawing
+drawComponents :: Get World c => (Textures -> c -> Position -> IO ()) -> System' (IO ())
+drawComponents f = do
+  TextureComp texs <- get global
+  cfold (\img (p, comp) -> img <> f texs comp p) mempty
 
-
--- Main draw system
+-- Create System' (IO ()) for everything depending on item drawn
 draw :: SDL.Renderer -> System' (IO ())
-draw renderer = drawComponents renderer $ \(Sprite fp rect) -> (fp, rect)
+draw renderer = drawComponents $ renderSprite renderer
 
+-- Main program thread
 main :: IO ()
 main = do
   world <- initWorld

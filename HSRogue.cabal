@@ -22,8 +22,10 @@ executable HSRogue
                         sdl2,
                         sdl2-image,
                         sdl2-ttf,
-                        hashmap
+                        hashmap,
+                        vector
   other-modules:        Common,
                         Components,
                         EventHandler,
-                        ImageLoad
+                        ImageLoad,
+                        GameMap

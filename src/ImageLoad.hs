@@ -1,5 +1,6 @@
 module ImageLoad
-( Resources
+( Textures
+, Resources
 , loadTextures
 , createTextureComp
 ) where
@@ -10,10 +11,9 @@ import SDL.Image(loadTexture)
 import Data.HashMap as HM
 import Control.Monad.IO.Class
 
-import Components
-
 -- Easy type for creating resources for 
 type Resources = [(String, Texture)]
+type Textures = HM.Map String Texture
 
 -- Create a Textures component  with initial filepaths
 loadTextures :: Renderer -> [FilePath] -> IO Resources
@@ -24,4 +24,4 @@ loadTextures r = traverse getTex
 
 -- Turns a list of key value pairs into a hashamp for the texture component
 createTextureComp :: Resources -> Textures
-createTextureComp kvps = Textures $ foldl (\map (k, v) -> insert k v map) empty kvps
+createTextureComp = foldl (\map (k, v) -> insert k v map) empty 
