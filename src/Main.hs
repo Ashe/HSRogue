@@ -12,6 +12,7 @@ import SDL.Vect
 import SDL(($=))
 import qualified SDL
 import qualified SDL.Image(quit)
+import qualified SDL.Font
 
 import Control.Monad
 import System.Exit (exitSuccess)
@@ -19,14 +20,15 @@ import System.Exit (exitSuccess)
 import Common
 import Components
 import EventHandler
-import ImageLoad
+import Resources
 import GameMap
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
-initialise :: Resources -> System' ()
-initialise r = void $ do
-  modify global (\(Textures _) -> Textures $ createTextureComp r)
+initialise :: [TexResource] -> [FontResource] -> System' ()
+initialise t f = void $ do
+  modify global (\(Textures _) -> Textures $ createResourceMap t)
+  modify global (\(Fonts _) -> Fonts $ createResourceMap f)
   modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 50 50) Empty)
   newEntity 
     ( Player
@@ -67,9 +69,11 @@ drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
 draw :: SDL.Renderer -> System' (IO ())
 draw renderer = do
   Textures texs <- get global
+  Fonts fonts <- get global
   sequence_ <$> sequence 
     [ drawComponents $ renderSprite renderer texs
     , printMessages
+    , displayFps renderer fonts "Assets/Roboto-Regular.ttf"
     ]
 
 -- Main program thread
@@ -77,8 +81,11 @@ main :: IO ()
 main = do
   world <- initWorld
   
-  -- Initialise SDL with a window
+  -- Initialise SDL
   SDL.initialize [SDL.InitVideo]
+  SDL.Font.initialize
+
+  -- Create a window and renderer
   window <- SDL.createWindow "App" SDL.defaultWindow
   renderer <-
       SDL.createRenderer window (-1)
@@ -87,10 +94,13 @@ main = do
           , SDL.rendererTargetTexture = False
           }
 
-  SDL.showWindow window
+  -- Load resources and initialise game
+  texs <- loadTextures renderer ["Assets/sprites.png"]
+  fonts <- loadFonts [("Assets/Roboto-Regular.ttf", 12)]
+  runSystem (initialise texs fonts) world
 
-  resources <- loadTextures renderer ["Assets/sprites.png"]
-  runSystem (initialise resources) world
+  -- Display the game
+  SDL.showWindow window
 
   let loop prevTicks = do
         ticks <- SDL.ticks
@@ -115,6 +125,7 @@ main = do
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
   SDL.Image.quit
+  SDL.Font.quit
   SDL.quit
   exitSuccess
 

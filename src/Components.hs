@@ -7,6 +7,7 @@ module Components
 , Position(..)
 , CellRef(..)
 , Textures(..)
+, Fonts(..)
 , Sprite(..)
 , GameMap(..)
 ) where
@@ -17,7 +18,7 @@ import SDL hiding (Vector)
 import qualified Data.HashMap as HM
 import Data.Vector
 
-import ImageLoad
+import Resources
 import GameMap
 
 -- Global component, exists outside of entities
@@ -50,6 +51,12 @@ newtype Textures = Textures TextureMap
 instance Component Textures where type Storage Textures = Global Textures
 instance Semigroup Textures where (<>) = mappend
 instance Monoid Textures where mempty = Textures HM.empty
+
+-- Global store of all fonts
+newtype Fonts = Fonts FontMap
+instance Component Fonts where type Storage Fonts = Global Fonts
+instance Semigroup Fonts where (<>) = mappend
+instance Monoid Fonts where mempty = Fonts HM.empty
 
 -- Used to store the texture coordinates of a sprite
 data Sprite = Sprite String (Rectangle Int)
