@@ -28,8 +28,7 @@ import ImageLoad
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
--- makeWorld "World" [''Time, ''Player, ''Position, ''CellRef, ''Sprite] 
-makeWorld "World" [''Time, ''TextureComp, ''GameMapComp, ''Player, ''Position, ''CellRef, ''Sprite] 
+makeWorld "World" [''Time, ''Messages, ''Textures, ''GameMap, ''Player, ''Position, ''CellRef, ''Sprite] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -60,7 +59,7 @@ toCIntV2 :: V2 Double -> V2 CInt
 toCIntV2 (V2 x y) = V2 (round x) (round y)
 
 -- Render textures
-renderSprite :: SDL.Renderer -> Textures -> Sprite -> Position -> IO ()
+renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
 renderSprite r ts (Sprite fp rect) (Position p) = 
   case HM.lookup fp ts of
     Just tex -> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize)) 0 Nothing (V2 False False)

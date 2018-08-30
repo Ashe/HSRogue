@@ -4,11 +4,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- {-# OPTIONS_GHC -Wall #-}
+
 import Apecs 
-import Apecs.Core
-import Apecs.Stores
-import Apecs.Util
-import Apecs.System
 
 import SDL.Vect
 import SDL(($=))
@@ -16,11 +14,7 @@ import qualified SDL
 import qualified SDL.Image(quit)
 
 import Control.Monad
-import Data.Monoid
-import Data.Maybe
-
 import System.Exit (exitSuccess)
-import qualified Data.HashMap as HM
 
 import Common
 import Components
@@ -28,12 +22,14 @@ import EventHandler
 import ImageLoad
 import GameMap
 
+import qualified Data.HashMap as HM
+
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
 initialise :: Resources -> System' ()
 initialise r = void $ do
-  modify global (\(TextureComp _) -> TextureComp $ createTextureComp r)
-  modify global (\(GameMapComp _) -> GameMapComp $ generateBlankMap (V2 50 50) Empty)
+  modify global (\(Textures _) -> Textures $ createTextureComp r)
+  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 50 50) Empty)
   newEntity 
     ( Player
     , Position playerPos
@@ -45,10 +41,10 @@ incrTime :: Double -> System' ()
 incrTime dT = modify 0 $ \(Time t) -> Time (t+dT)
 
 -- Converts cell references to game position
-snapEntities :: Double -> System' ()
-snapEntities dT =
-  cmap $ \(Position (V2 x y), CellRef (V2 cellX cellY)) ->
-    Position (V2 (calc cellX) (calc cellY))
+snapEntities :: System' ()
+snapEntities = 
+  cmap $ \(Position (V2 _ _), CellRef (V2 x y)) ->
+    Position (V2 (calc x) (calc y))
       where calc n = worldScale * fromIntegral n
 
 -- Runs a system periodically
@@ -63,17 +59,31 @@ triggerEvery dT period phase sys = do
 step :: Double -> System' ()
 step dT = do
   incrTime dT
-  snapEntities dT
+  snapEntities
 
 -- Produce a system used for drawing
-drawComponents :: Get World c => (Textures -> c -> Position -> IO ()) -> System' (IO ())
+drawComponents :: Get World c => (TextureMap -> c -> Position -> IO ()) -> System' (IO ())
 drawComponents f = do
-  TextureComp texs <- get global
+  Textures texs <- get global
   cfold (\img (p, comp) -> img <> f texs comp p) mempty
 
 -- Create System' (IO ()) for everything depending on item drawn
 draw :: SDL.Renderer -> System' (IO ())
 draw renderer = drawComponents $ renderSprite renderer
+
+-- Post a new message
+postMessage :: String -> System' ()
+postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
+
+-- Print messages into console
+printMessages :: System' (IO ())
+printMessages = do
+  Messages msgs <- get global
+  pure $ foldl (\io m ->io <> print m) mempty msgs
+
+-- Flush any messages
+clearMessages :: System' ()
+clearMessages = modify global (\(Messages _) -> Messages [])
 
 -- Main program thread
 main :: IO ()
@@ -108,6 +118,8 @@ main = do
         SDL.clear renderer
 
         join $ runSystem (draw renderer) world
+        runSystem printMessages world
+        runSystem clearMessages world
 
         SDL.present renderer
         unless quit $ loop ticks
@@ -119,3 +131,5 @@ main = do
   SDL.Image.quit
   SDL.quit
   exitSuccess
+
+

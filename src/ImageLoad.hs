@@ -1,5 +1,5 @@
 module ImageLoad
-( Textures
+( TextureMap
 , Resources
 , loadTextures
 , createTextureComp
@@ -13,7 +13,7 @@ import Control.Monad.IO.Class
 
 -- Easy type for creating resources for 
 type Resources = [(String, Texture)]
-type Textures = HM.Map String Texture
+type TextureMap = HM.Map String Texture
 
 -- Create a Textures component  with initial filepaths
 loadTextures :: Renderer -> [FilePath] -> IO Resources
@@ -23,5 +23,5 @@ loadTextures r = traverse getTex
           pure (p, tex)
 
 -- Turns a list of key value pairs into a hashamp for the texture component
-createTextureComp :: Resources -> Textures
+createTextureComp :: Resources -> TextureMap
 createTextureComp = foldl (\map (k, v) -> insert k v map) empty 

@@ -1,19 +1,21 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Components
-( Player(..)
-, Time(..)
+( Time(..)
+, Messages(..)
+, Player(..)
 , Position(..)
 , CellRef(..)
-, TextureComp(..)
+, Textures(..)
 , Sprite(..)
-, GameMapComp(..)
+, GameMap(..)
 ) where
 
 import Apecs
 import Apecs.Stores
-import SDL
+import SDL hiding (Vector)
 import qualified Data.HashMap as HM
+import Data.Vector
 
 import ImageLoad
 import GameMap
@@ -24,6 +26,12 @@ newtype Time = Time Double deriving Show
 instance Semigroup Time where (<>) = mappend
 instance Monoid Time where mempty = Time 0
 instance Component Time where type Storage Time = Global Time
+
+-- Global component used for debugging and reporting
+newtype Messages = Messages [String] deriving Show
+instance Semigroup Messages where (<>) = mappend
+instance Monoid Messages where mempty = Messages []
+instance Component Messages where type Storage Messages = Global Messages
 
 -- Unique component, either one or none exists
 data Player = Player deriving Show
@@ -38,17 +46,17 @@ newtype CellRef = CellRef (V2 Int) deriving Show
 instance Component CellRef where type Storage CellRef = Map CellRef
 
 -- Global store of all textures
-newtype TextureComp = TextureComp Textures
-instance Component TextureComp where type Storage TextureComp = Global TextureComp
-instance Semigroup TextureComp where (<>) = mappend
-instance Monoid TextureComp where mempty = mempty
+newtype Textures = Textures TextureMap
+instance Component Textures where type Storage Textures = Global Textures
+instance Semigroup Textures where (<>) = mappend
+instance Monoid Textures where mempty = Textures HM.empty
 
 -- Used to store the texture coordinates of a sprite
 data Sprite = Sprite String (Rectangle Int)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
 -- Global store of the current game map
-newtype GameMapComp = GameMapComp GameMap
-instance Component GameMapComp where type Storage GameMapComp = Global GameMapComp
-instance Semigroup GameMapComp where (<>) = mappend
-instance Monoid GameMapComp where mempty = mempty
+newtype GameMap = GameMap Grid
+instance Component GameMap where type Storage GameMap = Global GameMap
+instance Semigroup GameMap where (<>) = mappend
+instance Monoid GameMap where mempty = GameMap empty
