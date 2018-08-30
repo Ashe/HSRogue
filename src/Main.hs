@@ -22,8 +22,6 @@ import EventHandler
 import ImageLoad
 import GameMap
 
-import qualified Data.HashMap as HM
-
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
 initialise :: Resources -> System' ()
@@ -69,21 +67,10 @@ drawComponents f = do
 
 -- Create System' (IO ()) for everything depending on item drawn
 draw :: SDL.Renderer -> System' (IO ())
-draw renderer = drawComponents $ renderSprite renderer
-
--- Post a new message
-postMessage :: String -> System' ()
-postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
-
--- Print messages into console
-printMessages :: System' (IO ())
-printMessages = do
-  Messages msgs <- get global
-  pure $ foldl (\io m ->io <> print m) mempty msgs
-
--- Flush any messages
-clearMessages :: System' ()
-clearMessages = modify global (\(Messages _) -> Messages [])
+draw renderer = sequence_ <$> sequence 
+ [ drawComponents $ renderSprite renderer
+ , printMessages
+ ]
 
 -- Main program thread
 main :: IO ()
@@ -118,7 +105,6 @@ main = do
         SDL.clear renderer
 
         join $ runSystem (draw renderer) world
-        runSystem printMessages world
         runSystem clearMessages world
 
         SDL.present renderer

@@ -33,8 +33,9 @@ handleKeyEvent ev =
 
 -- Move the player in a direction using move speed
 movePlayer :: Maybe Direction -> System' ()
-movePlayer (Just dir) = 
-  let (V2 i j) = directionToVect dir in
+movePlayer (Just dir) = do
+  postMessage ("Moving the player " ++ show dir)
+  let (V2 i j) = directionToVect dir
   cmap $ \(Player, CellRef (V2 x y)) -> CellRef (V2 (x + i * playerSpeed) (y + j * playerSpeed))
 movePlayer _ = pure ()
 

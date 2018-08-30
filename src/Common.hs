@@ -7,11 +7,14 @@ module Common
 , initWorld
 , System'
 , Direction(..)
-, worldScale
+, postMessage
+, printMessages
+, clearMessages
 , directionToVect
 , toCIntRect
 , toCIntV2
 , renderSprite
+, worldScale
 , playerPos
 , playerCellRef
 , playerSpeed
@@ -19,7 +22,7 @@ module Common
 ) where
 
 import Apecs
-import SDL
+import SDL hiding (get)
 import Foreign.C
 import Data.HashMap as HM
 
@@ -37,6 +40,20 @@ type System' a = System World a
 data Direction = 
   Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
   deriving Show
+
+-- Post a new message
+postMessage :: String -> System' ()
+postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
+
+-- Print messages into console
+printMessages :: System' (IO ())
+printMessages = do
+  Messages msgs <- get global
+  pure $ foldl (\io m ->io <> print m) mempty msgs
+
+-- Flush any messages
+clearMessages :: System' ()
+clearMessages = modify global (\(Messages _) -> Messages [])
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
