@@ -60,17 +60,17 @@ step dT = do
   snapEntities
 
 -- Produce a system used for drawing
-drawComponents :: Get World c => (TextureMap -> c -> Position -> IO ()) -> System' (IO ())
-drawComponents f = do
-  Textures texs <- get global
-  cfold (\img (p, comp) -> img <> f texs comp p) mempty
+drawComponents :: Get World c => (c -> Position -> IO ()) -> System' (IO ())
+drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
 
 -- Create System' (IO ()) for everything depending on item drawn
 draw :: SDL.Renderer -> System' (IO ())
-draw renderer = sequence_ <$> sequence 
- [ drawComponents $ renderSprite renderer
- , printMessages
- ]
+draw renderer = do
+  Textures texs <- get global
+  sequence_ <$> sequence 
+    [ drawComponents $ renderSprite renderer texs
+    , printMessages
+    ]
 
 -- Main program thread
 main :: IO ()
