@@ -13,6 +13,7 @@ import SDL(($=))
 import qualified SDL
 import qualified SDL.Image(quit)
 import qualified SDL.Font
+import Data.Fixed
 
 import Control.Monad
 import System.Exit (exitSuccess)
@@ -66,14 +67,14 @@ drawComponents :: Get World c => (c -> Position -> IO ()) -> System' (IO ())
 drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
 
 -- Create System' (IO ()) for everything depending on item drawn
-draw :: SDL.Renderer -> System' (IO ())
-draw renderer = do
+draw :: SDL.Renderer -> Int -> System' (IO ())
+draw renderer fps = do
   Textures texs <- get global
   Fonts fonts <- get global
   sequence_ <$> sequence 
     [ drawComponents $ renderSprite renderer texs
     , printMessages
-    , displayFps renderer fonts "Assets/Roboto-Regular.ttf"
+    , displayFps renderer fps fonts "Assets/Roboto-Regular.ttf"
     ]
 
 -- Main program thread
@@ -102,26 +103,30 @@ main = do
   -- Display the game
   SDL.showWindow window
 
-  let loop prevTicks = do
+  let loop prevTicks secondTick fpsAcc prevFps = do
         ticks <- SDL.ticks
         payload <- map SDL.eventPayload <$> SDL.pollEvents
         let quit = SDL.QuitEvent `elem` payload
-            dt = fromIntegral $ ticks - prevTicks
+            dt = ticks - prevTicks
+            calcFps = secondTick + dt > 1000
+            newFps = if calcFps then fpsAcc + 1 else prevFps 
+            newFpsAcc = if calcFps then 1 else fpsAcc + 1
+            newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
 
         runSystem (handlePayload payload) world
-        runSystem (step dt) world
+        runSystem (step $ fromIntegral dt) world
 
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
 
-        join $ runSystem (draw renderer) world
+        join $ runSystem (draw renderer newFps) world
         runSystem clearMessages world
 
         SDL.present renderer
-        unless quit $ loop ticks
+        unless quit $ loop ticks newSecondTick newFpsAcc newFps
 
   -- Begin looping
-  loop 0
+  loop 0 0 0 0
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
   SDL.Image.quit

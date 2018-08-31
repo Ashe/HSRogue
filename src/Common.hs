@@ -62,11 +62,10 @@ clearMessages :: System' ()
 clearMessages = modify global (\(Messages _) -> Messages [])
 
 -- Display FPS
-displayFps :: SDL.Renderer -> FontMap -> String -> System' (IO ())
-displayFps r fontMap fp = do
-  Time time <- get global
+displayFps :: SDL.Renderer -> Int -> FontMap -> String -> System' (IO ())
+displayFps r fps fontMap fp = 
   case HM.lookup fp fontMap of 
-    Just f -> pure $ renderSolidText r f (V4 255 255 255 255) (show time) 0 0
+    Just f -> pure $ renderSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps) 0 0
     _ -> pure $ pure ()
 
 -- Conversion from Direction to Int V2
