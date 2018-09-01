@@ -30,7 +30,7 @@ initialise :: [TexResource] -> [FontResource] -> System' ()
 initialise t f = void $ do
   modify global (\(Textures _) -> Textures $ createResourceMap t)
   modify global (\(Fonts _) -> Fonts $ createResourceMap f)
-  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 50 50) Empty)
+  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 50 50) Solid)
   newEntity 
     ( Player
     , Position playerPos
@@ -72,7 +72,8 @@ draw renderer fps = do
   Textures texs <- get global
   Fonts fonts <- get global
   sequence_ <$> sequence 
-    [ drawComponents $ renderSprite renderer texs
+    [ renderWorld renderer
+    , drawComponents $ renderSprite renderer texs
     , printMessages
     , displayFps renderer fps fonts "Assets/Roboto-Regular.ttf"
     ]

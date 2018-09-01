@@ -6,10 +6,11 @@ module GameMap
 , generateBlankMap
 ) where
 
-import SDL.Vect hiding (Vector)
+import SDL hiding (Vector)
 import Data.Vector
+import Foreign.C
 
--- Data for describing the traversability of a tile
+-- Data for describing the traversability of a world tile
 data Tile = Empty | Solid
 
 -- Easy type synonyms
@@ -25,3 +26,4 @@ getTile gm (V2 x y) = genMap (gm !? y)
 -- Trivial map filled with the given tile
 generateBlankMap :: V2 Int -> Tile -> Grid
 generateBlankMap (V2 x y) t = generate y (const $ generate x (const t))
+
