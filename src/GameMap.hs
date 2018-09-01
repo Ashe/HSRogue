@@ -1,6 +1,6 @@
 module GameMap 
-( Grid(..)
-, Row(..)
+( Grid
+, Row
 , Tile(..)
 , getTile
 , generateBlankMap
@@ -8,7 +8,6 @@ module GameMap
 
 import SDL hiding (Vector)
 import Data.Vector
-import Foreign.C
 
 -- Data for describing the traversability of a world tile
 data Tile = Empty | Solid

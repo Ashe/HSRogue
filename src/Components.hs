@@ -3,6 +3,8 @@
 module Components
 ( Time(..)
 , Messages(..)
+, GameState(..)
+, GameMode(..)
 , Player(..)
 , Position(..)
 , CellRef(..)
@@ -13,7 +15,6 @@ module Components
 ) where
 
 import Apecs
-import Apecs.Stores
 import SDL hiding (Vector)
 import qualified Data.HashMap as HM
 import Data.Vector
@@ -33,6 +34,13 @@ newtype Messages = Messages [String] deriving Show
 instance Semigroup Messages where (<>) = mappend
 instance Monoid Messages where mempty = Messages []
 instance Component Messages where type Storage Messages = Global Messages
+
+-- Global component used for changing gamestates
+data GameMode = Standard | Look deriving Show
+data GameState = Game GameMode | Interface deriving Show
+instance Semigroup GameState where (<>) = mappend
+instance Monoid GameState where mempty = Game Standard
+instance Component GameState where type Storage GameState = Global GameState
 
 -- Unique component, either one or none exists
 data Player = Player deriving Show

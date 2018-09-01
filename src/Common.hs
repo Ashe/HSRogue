@@ -41,7 +41,7 @@ import GameMap
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''Messages, ''Textures, ''Fonts, ''GameMap, ''Player, ''Position, ''CellRef, ''Sprite] 
+makeWorld "World" [''Time, ''Messages, ''GameState, ''Textures, ''Fonts, ''GameMap, ''Player, ''Position, ''CellRef, ''Sprite] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -49,7 +49,7 @@ type System' a = System World a
 -- Types for Directions
 data Direction = 
   Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
-  deriving Show
+  deriving (Read, Show, Eq, Ord)
 
 -- Post a new message
 postMessage :: String -> System' ()
@@ -59,7 +59,7 @@ postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
 printMessages :: System' (IO ())
 printMessages = do
   Messages msgs <- get global
-  pure $ foldl (\io m ->io <> print m) mempty msgs
+  pure $ foldl (\io m ->io <> putStrLn m) mempty msgs
 
 -- Flush any messages
 clearMessages :: System' ()
@@ -105,12 +105,12 @@ renderWorld r = do
   GameMap m <- get global
   rendererDrawColor r $= V4 255 255 255 255
   pure $ ifoldl foldRow (pure ()) m
-    where foldRow io y r = io <> ifoldl (foldidx y) (pure ()) r
+    where foldRow io y row = io <> ifoldl (foldidx y) (pure ()) row
           foldidx y io x t = io <> renderTileMessy r (V2 x y) t
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
-renderTileMessy r pos@(V2 x y) t =
+renderTileMessy r (V2 x y) t =
   let f = fromIntegral
       ti = realToFrac
       (V2 w h) = tileSize 
@@ -130,8 +130,8 @@ renderText r fo fu c t (V2 x y) = do
   surface <- fu c text
   texture <- SDL.createTextureFromSurface r surface
   SDL.freeSurface surface
-  size <- SDL.Font.size fo text
-  let (w, h) = (fromIntegral *** fromIntegral) size
+  fontSize <- SDL.Font.size fo text
+  let (w, h) = (fromIntegral *** fromIntegral) fontSize
       x' = fromIntegral x
       y' = fromIntegral y
   SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x' y') (V2 w h)))

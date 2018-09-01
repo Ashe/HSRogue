@@ -4,8 +4,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- {-# OPTIONS_GHC -Wall #-}
-
 import Apecs 
 
 import SDL.Vect
@@ -30,7 +28,7 @@ initialise :: [TexResource] -> [FontResource] -> System' ()
 initialise t f = void $ do
   modify global (\(Textures _) -> Textures $ createResourceMap t)
   modify global (\(Fonts _) -> Fonts $ createResourceMap f)
-  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 50 50) Solid)
+  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 20 20) Solid)
   newEntity 
     ( Player
     , Position playerPos
@@ -133,6 +131,7 @@ main = do
   SDL.Image.quit
   SDL.Font.quit
   SDL.quit
+  putStrLn "Goodbye! (◠‿◠✿)"
   exitSuccess
 
 
