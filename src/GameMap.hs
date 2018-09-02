@@ -10,7 +10,7 @@ import SDL hiding (Vector)
 import Data.Vector
 
 -- Data for describing the traversability of a world tile
-data Tile = Empty | Solid
+data Tile = Empty | Solid deriving (Show, Eq)
 
 -- Easy type synonyms
 type Row = Vector Tile
