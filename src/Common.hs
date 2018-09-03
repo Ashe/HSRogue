@@ -10,6 +10,7 @@ module Common
 , postMessage
 , printMessages
 , clearMessages
+, getPlayer
 , directionToVect
 , toCIntRect
 , toCIntV2
@@ -71,6 +72,12 @@ displayFps r fps fontMap fp =
   case HM.lookup fp fontMap of 
     Just f -> pure $ renderSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps) (V2 0 0)
     _ -> pure $ pure ()
+
+-- Get the player's entity ID
+getPlayer :: System' Entity
+getPlayer = do
+  [(Player, p)] <- getAll
+  pure p
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int

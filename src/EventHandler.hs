@@ -8,6 +8,7 @@ import Apecs hiding (Map)
 import SDL hiding (get)
 
 import Data.Map(Map, insert, empty, lookup)
+import Control.Monad(when)
 
 import Common hiding (Left, Right, Down, Up)
 import qualified Common as C
@@ -67,14 +68,20 @@ gameAction mode k = case mode of
 
 -- Move the player in a direction using move speed
 movePlayer :: Maybe Direction -> System' ()
+movePlayer Nothing = pure ()
 movePlayer (Just dir) = do
   GameMap m <- get global
-  postMessage ("You move " ++ show dir ++ ".")
+  pId <- getPlayer
+  CellRef (V2 x y) <- get pId
   let (V2 i j) = directionToVect dir
-  cmap $ \(Player, pos@(CellRef (V2 x y))) -> 
-    let dest = V2 (x + i * playerSpeed) (y + j * playerSpeed) in
-        if checkDir m dest then CellRef dest else pos
-movePlayer _ = pure ()
+      dest = V2 (x + i * playerSpeed) (y + j * playerSpeed)
+      valid = checkDir m dest
+  when valid $ modify pId (\(CellRef _) -> CellRef dest)
+  postMessage $ 
+    if valid then
+      "You move " ++ show dir ++ "."
+    else
+      "Ouch! You bumped into a wall!"
 
 -- Check to see if the move is valid
 checkDir :: Grid -> V2 Int -> Bool

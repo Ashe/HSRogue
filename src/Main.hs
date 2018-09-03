@@ -28,7 +28,7 @@ initialise :: [TexResource] -> [FontResource] -> System' ()
 initialise t f = void $ do
   modify global (\(Textures _) -> Textures $ createResourceMap t)
   modify global (\(Fonts _) -> Fonts $ createResourceMap f)
-  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 20 20) Solid)
+  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 20 20) Empty)
   newEntity 
     ( Player
     , Position playerPos
