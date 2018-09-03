@@ -1,7 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Components
-( Time(..)
+( AllComps
+, Time(..)
 , Messages(..)
 , GameState(..)
 , Textures(..)
@@ -22,6 +23,9 @@ import Data.Vector
 import Resources
 import GameMap
 import Characters
+
+-- Easy type for all non-global, non-player components
+type AllComps = (Position, CellRef, Sprite, Character)
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time

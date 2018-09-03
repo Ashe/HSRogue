@@ -62,54 +62,56 @@ defaultGameIntents = foldl (\m (k, v) -> insert k v m) empty
 -- For keyboard events that  take place in the game
 gameAction :: GameMode -> Keycode -> System' ()
 gameAction mode k = case mode of
-  Standard -> movePlayer intentDir
+  Standard -> navigate intentDir
   _ -> pure ()
   where intent = Data.Map.lookup k defaultGameIntents
         intentDir = case intent of
                       Just (Navigate dir) -> Just dir
                       _ -> Nothing
 
--- Move the player in a direction using move speed
-movePlayer :: Maybe Direction -> System' ()
-movePlayer Nothing = pure ()
-movePlayer (Just dir) = do
+-- Things that can come from navigation
+data NavAction = Move | Swap Entity | Fight Entity deriving Show
+
+-- Move, swap, or fight in a given direction, standard navigation
+navigate :: Maybe Direction -> System' ()
+navigate Nothing = pure ()
+navigate (Just dir) = do
   GameMap m <- get global
-  [((Player, CellRef (V2 x y)), pId)] <- getAll
+  [(Player, CellRef (V2 x y), p)] <- getAll
   chars :: CharacterList <- getAll
   let (V2 i j) = directionToVect dir
-      dest = V2 (x + i * playerSpeed) (y + j * playerSpeed)
-      valid = checkDir m dest chars
+      dest = V2 (x + i) (y + j)
+      valid = getNavAction m (dir, dest) chars
   case valid of
-    Left success -> 
-      when success $ do
-      modify pId (\(CellRef _) -> CellRef dest)
-      postMessage $ "You move " ++ show dir ++ "."
+    Left (na, msg) -> do
+      case na of
+        Move -> 
+          modify p (\(CellRef _) -> CellRef dest)
+        Swap e -> do
+          CellRef (V2 eX eY) <- get e
+          modify e (\(CellRef _) -> CellRef (V2 x y))
+          modify p (\(CellRef _) -> CellRef (V2 eX eY))
+        Fight e -> 
+          destroy e (Proxy :: Proxy AllComps)
+      postMessage msg
     Right msg -> 
       postMessage msg
 
--- Check to see if the move is valid
-checkDir :: Grid -> V2 Int -> CharacterList -> Either Bool String
-checkDir g dest cs = 
+-- Given a direction, find how to execute the player's intent
+getNavAction :: Grid -> (Direction, V2 Int) -> CharacterList -> Either (NavAction, String) String
+getNavAction g (dir, dest) cs = 
   case tile of
     Nothing -> Right "Hmm.. You can't find a way to move there."
     Just tile -> 
       if tile == Empty
         then case charOnSpace of
-          Nothing -> Left True
-          Just ((c, _), _) -> Right $ "Oof! You bumped into " ++ name c ++ "!"
+          Nothing -> Left (Move, "You move " ++ show dir ++ ".")
+          Just (c, _, e) -> 
+            case attitude c of
+              Aggressive -> Left (Fight e, "You murder " ++ name c ++ "!")
+              Friendly -> Left (Swap e, "You switch places with " ++ name c ++ "!")
+              Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
         else Right "Ouch! You bumped into a wall!"
   where tile = getTile g dest
-        chk ((Character {}, CellRef p), _) = dest == p
+        chk (Character {}, CellRef p, _) = dest == p
         charOnSpace = find chk cs
-
--- Find a direction of movement from scancode
-findDir :: Scancode -> Maybe Direction
-findDir ScancodeW = Just C.Up
-findDir ScancodeUp = Just C.Up
-findDir ScancodeD = Just C.Right
-findDir ScancodeRight = Just C.Right
-findDir ScancodeS = Just C.Down
-findDir ScancodeDown = Just C.Down
-findDir ScancodeA = Just C.Left
-findDir ScancodeLeft = Just C.Left
-findDir _ = Nothing

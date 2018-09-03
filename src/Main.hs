@@ -38,8 +38,13 @@ initialise t f = void $ do
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity 
     ( Position (V2 0 0)
-    , CellRef (V2 5 5)
+    , CellRef (V2 8 10)
     , Character "Chum" 100 100 Friendly
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
+  newEntity 
+    ( Position (V2 0 0)
+    , CellRef (V2 12 10)
+    , Character "Todd" 100 100 Aggressive
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
 
 -- When called, manipulates the global time component

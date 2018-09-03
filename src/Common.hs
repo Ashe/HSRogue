@@ -22,7 +22,6 @@ module Common
 , worldScale
 , playerPos
 , playerCellRef
-, playerSpeed
 , tileSize
 ) where
 
@@ -55,7 +54,7 @@ data Direction =
   deriving (Read, Show, Eq, Ord)
 
 -- Easy way of getting all non-player entities
-type CharacterList = [((Character, CellRef), Entity)]
+type CharacterList = [(Character, CellRef, Entity)]
 
 -- Post a new message
 postMessage :: String -> System' ()
@@ -159,9 +158,6 @@ playerPos = V2 0 0
 
 playerCellRef :: V2 Int
 playerCellRef = V2 0 0
-
-playerSpeed :: Int
-playerSpeed = 1
 
 tileSize :: V2 CInt
 tileSize = V2 32 32
