@@ -7,10 +7,10 @@ module Common
 , initWorld
 , System'
 , Direction(..)
+, CharacterList
 , postMessage
 , printMessages
 , clearMessages
-, getPlayer
 , directionToVect
 , toCIntRect
 , toCIntV2
@@ -39,10 +39,12 @@ import Data.Vector (ifoldl)
 import Components
 import Resources
 import GameMap
+import Characters
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''Messages, ''GameState, ''Textures, ''Fonts, ''GameMap, ''Player, ''Position, ''CellRef, ''Sprite] 
+makeWorld "World" [''Time, ''Messages, ''GameState, ''Textures, ''Fonts, ''GameMap, 
+  ''Player, ''Position, ''CellRef, ''Sprite, ''Character] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -51,6 +53,9 @@ type System' a = System World a
 data Direction = 
   Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
   deriving (Read, Show, Eq, Ord)
+
+-- Easy way of getting all non-player entities
+type CharacterList = [((Character, CellRef), Entity)]
 
 -- Post a new message
 postMessage :: String -> System' ()
@@ -72,12 +77,6 @@ displayFps r fps fontMap fp =
   case HM.lookup fp fontMap of 
     Just f -> pure $ renderSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps) (V2 0 0)
     _ -> pure $ pure ()
-
--- Get the player's entity ID
-getPlayer :: System' Entity
-getPlayer = do
-  [(Player, p)] <- getAll
-  pure p
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int

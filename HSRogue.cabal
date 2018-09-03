@@ -30,4 +30,5 @@ executable HSRogue
                         Components,
                         EventHandler,
                         Resources,
-                        GameMap
+                        GameMap,
+                        Characters

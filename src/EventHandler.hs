@@ -9,11 +9,14 @@ import SDL hiding (get)
 
 import Data.Map(Map, insert, empty, lookup)
 import Control.Monad(when)
+import Data.Maybe(isNothing)
+import Data.List(find)
 
 import Common hiding (Left, Right, Down, Up)
 import qualified Common as C
 import Components
 import GameMap
+import Characters
 
 -- Handle the entire event payload
 handlePayload :: [EventPayload] -> System' ()
@@ -71,25 +74,33 @@ movePlayer :: Maybe Direction -> System' ()
 movePlayer Nothing = pure ()
 movePlayer (Just dir) = do
   GameMap m <- get global
-  pId <- getPlayer
-  CellRef (V2 x y) <- get pId
+  [((Player, CellRef (V2 x y)), pId)] <- getAll
+  chars :: CharacterList <- getAll
   let (V2 i j) = directionToVect dir
       dest = V2 (x + i * playerSpeed) (y + j * playerSpeed)
-      valid = checkDir m dest
-  when valid $ modify pId (\(CellRef _) -> CellRef dest)
-  postMessage $ 
-    if valid then
-      "You move " ++ show dir ++ "."
-    else
-      "Ouch! You bumped into a wall!"
+      valid = checkDir m dest chars
+  case valid of
+    Left success -> 
+      when success $ do
+      modify pId (\(CellRef _) -> CellRef dest)
+      postMessage $ "You move " ++ show dir ++ "."
+    Right msg -> 
+      postMessage msg
 
 -- Check to see if the move is valid
-checkDir :: Grid -> V2 Int -> Bool
-checkDir g dest = 
+checkDir :: Grid -> V2 Int -> CharacterList -> Either Bool String
+checkDir g dest cs = 
   case tile of
-    Just tile -> tile == Empty
-    _ -> False
+    Nothing -> Right "Hmm.. You can't find a way to move there."
+    Just tile -> 
+      if tile == Empty
+        then case charOnSpace of
+          Nothing -> Left True
+          Just ((c, _), _) -> Right $ "Oof! You bumped into " ++ name c ++ "!"
+        else Right "Ouch! You bumped into a wall!"
   where tile = getTile g dest
+        chk ((Character {}, CellRef p), _) = dest == p
+        charOnSpace = find chk cs
 
 -- Find a direction of movement from scancode
 findDir :: Scancode -> Maybe Direction

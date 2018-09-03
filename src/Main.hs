@@ -21,6 +21,7 @@ import Components
 import EventHandler
 import Resources
 import GameMap
+import Characters
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
@@ -33,7 +34,13 @@ initialise t f = void $ do
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 32 32)) (V2 16 16)))
+    , Character "You" 100 100 Neutral
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
+  newEntity 
+    ( Position (V2 0 0)
+    , CellRef (V2 5 5)
+    , Character "Chum" 100 100 Friendly
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()
