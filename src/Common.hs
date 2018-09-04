@@ -64,7 +64,7 @@ postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
 printMessages :: System' (IO ())
 printMessages = do
   Messages msgs <- get global
-  pure $ foldl (\io m ->io <> putStrLn m) mempty msgs
+  pure $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
 
 -- Flush any messages
 clearMessages :: System' ()

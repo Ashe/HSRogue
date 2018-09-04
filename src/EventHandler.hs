@@ -7,8 +7,8 @@ module EventHandler
 import Apecs hiding (Map)
 import SDL hiding (get)
 
-import Data.Map(Map, insert, empty, lookup)
 import Control.Monad(when)
+import Control.Monad.IO.Class
 import Data.Maybe(isNothing)
 import Data.List(find)
 
@@ -33,22 +33,24 @@ handleKeyEvent ev = do
   (state :: GameState) <- get global
   let code = keysymKeycode $ keyboardEventKeysym ev
   case keyboardEventKeyMotion ev of
-    Pressed -> 
+    Pressed -> do
+      liftIO $ when (code == KeycodeJ) $ print "Code is J confirmed"
       case state of
         Game mode -> gameAction mode code
         Interface -> pure ()
+      postMessage "End Event"
     _ -> pure ()
 
 -- Use GameState to determine the context of input
 -- Use context specific bindings to ascertain intent
 data GameIntent
   = Navigate Direction
-  | Look
+  | ToggleLook
   deriving (Read, Show, Eq)
 
 -- Initial bindings for intents
-defaultGameIntents :: Map Keycode GameIntent
-defaultGameIntents = foldl (\m (k, v) -> insert k v m) empty
+defaultGameIntents :: [(Keycode, GameIntent)]
+defaultGameIntents = 
   [ (KeycodeUp , Navigate C.Up)
   , (KeycodeK, Navigate C.Up)
   , (KeycodeLeft , Navigate C.Left)
@@ -62,20 +64,20 @@ defaultGameIntents = foldl (\m (k, v) -> insert k v m) empty
 -- For keyboard events that  take place in the game
 gameAction :: GameMode -> Keycode -> System' ()
 gameAction mode k = case mode of
-  Standard -> navigate intentDir
-  _ -> pure ()
-  where intent = Data.Map.lookup k defaultGameIntents
-        intentDir = case intent of
-                      Just (Navigate dir) -> Just dir
-                      _ -> Nothing
+  Standard -> 
+    case lookup k defaultGameIntents of
+      Just (Navigate dir) -> navigate dir
+      Just ToggleLook -> postMessage "Toggle look not implemented yet."
+      Nothing -> liftIO $ print $ "DEBUG: " ++ show k ++ " does nothing."
+  _ -> postMessage "Modes other than standard not supported yet."
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity | Fight Entity deriving Show
 
 -- Move, swap, or fight in a given direction, standard navigation
-navigate :: Maybe Direction -> System' ()
-navigate Nothing = pure ()
-navigate (Just dir) = do
+navigate :: Direction -> System' ()
+navigate dir = do
+  postMessage $ "NAVIGATE: " ++ show dir
   GameMap m <- get global
   [(Player, CellRef (V2 x y), p)] <- getAll
   chars :: CharacterList <- getAll
