@@ -20,7 +20,7 @@ import Characters
 
 -- Handle the entire event payload
 handlePayload :: [EventPayload] -> System' ()
-handlePayload = foldl (\_ ev -> handleEvent ev) (pure ()) 
+handlePayload = mapM_ handleEvent 
   
 -- The main event handler function for dealing with keypresses
 handleEvent :: EventPayload -> System' ()
@@ -33,13 +33,11 @@ handleKeyEvent ev = do
   (state :: GameState) <- get global
   let code = keysymKeycode $ keyboardEventKeysym ev
   case keyboardEventKeyMotion ev of
-    Pressed -> do
-      liftIO $ when (code == KeycodeJ) $ print "Code is J confirmed"
+    Pressed ->
       case state of
         Game mode -> gameAction mode code
-        Interface -> pure ()
-      postMessage "End Event"
-    _ -> pure ()
+        Interface -> postMessage "Interface state not implemented yet"
+    Released -> pure ()
 
 -- Use GameState to determine the context of input
 -- Use context specific bindings to ascertain intent
@@ -68,8 +66,8 @@ gameAction mode k = case mode of
     case lookup k defaultGameIntents of
       Just (Navigate dir) -> navigate dir
       Just ToggleLook -> postMessage "Toggle look not implemented yet."
-      Nothing -> liftIO $ print $ "DEBUG: " ++ show k ++ " does nothing."
-  _ -> postMessage "Modes other than standard not supported yet."
+      _ -> pure ()
+  Look -> postMessage "Modes other than standard not supported yet."
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity | Fight Entity deriving Show
@@ -77,7 +75,6 @@ data NavAction = Move | Swap Entity | Fight Entity deriving Show
 -- Move, swap, or fight in a given direction, standard navigation
 navigate :: Direction -> System' ()
 navigate dir = do
-  postMessage $ "NAVIGATE: " ++ show dir
   GameMap m <- get global
   [(Player, CellRef (V2 x y), p)] <- getAll
   chars :: CharacterList <- getAll
