@@ -10,8 +10,10 @@ module Components
 , GameMode(..)
 , GameMap(..)
 , Player(..)
+, Reticule(..)
 , Position(..)
 , CellRef(..)
+, Examine(..)
 , Sprite(..)
 ) where
 
@@ -53,8 +55,8 @@ instance Semigroup Fonts where (<>) = mappend
 instance Monoid Fonts where mempty = Fonts HM.empty
 
 -- Global component used for changing gamestates
-data GameMode = Standard | Look deriving Show
-data GameState = Game GameMode | Interface deriving Show
+data GameMode = Standard | Look deriving (Show, Eq)
+data GameState = Game GameMode | Interface deriving (Show, Eq)
 instance Semigroup GameState where (<>) = mappend
 instance Monoid GameState where mempty = Game Standard
 instance Component GameState where type Storage GameState = Global GameState
@@ -69,12 +71,16 @@ instance Monoid GameMap where mempty = GameMap empty
 data Player = Player deriving Show
 instance Component Player where type Storage Player = Unique Player
 
+-- Unique Component for showing where the player is looking
+newtype Reticule = Reticule Bool deriving Show
+instance Component Reticule where type Storage Reticule = Unique Reticule
+
 -- Position of game entities
 newtype Position = Position (V2 Double) deriving Show
 instance Component Position where type Storage Position = Map Position
 
 -- Cell reference of an entity
-newtype CellRef = CellRef (V2 Int) deriving Show
+newtype CellRef = CellRef (V2 Int) deriving (Show, Eq)
 instance Component CellRef where type Storage CellRef = Map CellRef
 
 -- Texture coordinates of a sprite
@@ -83,3 +89,7 @@ instance Component Sprite where type Storage Sprite = Map Sprite
 
 -- Character elements of the player and NPCs
 instance Component Character where type Storage Character = Map Character
+
+-- Descriptions of entities when looking
+newtype Examine = Examine String deriving Show
+instance Component Examine where type Storage Examine = Map Examine

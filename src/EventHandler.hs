@@ -7,7 +7,7 @@ module EventHandler
 import Apecs hiding (Map)
 import SDL hiding (get)
 
-import Control.Monad(when)
+import Control.Monad(when, unless, void)
 import Control.Monad.IO.Class
 import Data.Maybe(isNothing)
 import Data.List(find)
@@ -49,6 +49,7 @@ data GameIntent
 -- Initial bindings for intents
 defaultGameIntents :: [(Keycode, GameIntent)]
 defaultGameIntents = 
+  -- Navigation
   [ (KeycodeUp , Navigate C.Up)
   , (KeycodeK, Navigate C.Up)
   , (KeycodeLeft , Navigate C.Left)
@@ -57,17 +58,26 @@ defaultGameIntents =
   , (KeycodeJ, Navigate C.Down)
   , (KeycodeRight , Navigate C.Right)
   , (KeycodeL, Navigate C.Right)
+
+  -- Nav modes
+  , (KeycodeSemicolon, ToggleLook)
   ]
 
 -- For keyboard events that  take place in the game
 gameAction :: GameMode -> Keycode -> System' ()
-gameAction mode k = case mode of
-  Standard -> 
-    case lookup k defaultGameIntents of
-      Just (Navigate dir) -> navigate dir
-      Just ToggleLook -> postMessage "Toggle look not implemented yet."
-      _ -> pure ()
-  Look -> postMessage "Modes other than standard not supported yet."
+gameAction mode k = 
+  let intents = lookup k defaultGameIntents in
+    case mode of
+      Standard -> 
+        case intents of
+          Just (Navigate dir) -> navigate dir
+          Just ToggleLook -> toggleLook mode
+          _ -> pure ()
+      Look -> 
+        case intents of
+          Just (Navigate dir) -> moveReticule dir
+          Just ToggleLook -> toggleLook mode
+          _ -> pure ()
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity | Fight Entity deriving Show
@@ -76,10 +86,9 @@ data NavAction = Move | Swap Entity | Fight Entity deriving Show
 navigate :: Direction -> System' ()
 navigate dir = do
   GameMap m <- get global
-  [(Player, CellRef (V2 x y), p)] <- getAll
+  [(Player, CellRef pos, p)] <- getAll
   chars :: CharacterList <- getAll
-  let (V2 i j) = directionToVect dir
-      dest = V2 (x + i) (y + j)
+  let dest = pos + directionToVect dir
       valid = getNavAction m (dir, dest) chars
   case valid of
     Left (na, msg) -> do
@@ -87,12 +96,12 @@ navigate dir = do
         Move -> 
           modify p (\(CellRef _) -> CellRef dest)
         Swap e -> do
-          CellRef (V2 eX eY) <- get e
-          modify e (\(CellRef _) -> CellRef (V2 x y))
-          modify p (\(CellRef _) -> CellRef (V2 eX eY))
+          CellRef (V2 x y) <- get e
+          modify e (\(CellRef _) -> CellRef pos)
+          modify p (\(CellRef _) -> CellRef (V2 x y))
         Fight e -> 
           destroy e (Proxy :: Proxy AllComps)
-      postMessage msg
+      unless (null msg) $ postMessage msg
     Right msg -> 
       postMessage msg
 
@@ -104,7 +113,7 @@ getNavAction g (dir, dest) cs =
     Just tile -> 
       if tile == Empty
         then case charOnSpace of
-          Nothing -> Left (Move, "You move " ++ show dir ++ ".")
+          Nothing -> Left (Move, "")
           Just (c, _, e) -> 
             case attitude c of
               Aggressive -> Left (Fight e, "You murder " ++ name c ++ "!")
@@ -114,3 +123,27 @@ getNavAction g (dir, dest) cs =
   where tile = getTile g dest
         chk (Character {}, CellRef p, _) = dest == p
         charOnSpace = find chk cs
+
+-- Turn look mode on to examine entities in the area
+toggleLook :: GameMode -> System' ()
+toggleLook m = do
+  let isLook = m == Look
+  modify global (\(a :: GameState) -> 
+    if isLook then Game Standard else Game Look)
+  ls :: [(Reticule, Entity)] <- getAll
+  [(Player, CellRef (V2 x y))] <- getAll 
+  let r = (Reticule $ not isLook, Position (V2 0 0), CellRef (V2 x y))
+  if not $ null ls
+    then set (snd $ head ls) r
+    else void $ newEntity r
+
+-- Move the reticule for looking or aiming purposes
+moveReticule :: Direction -> System' ()
+moveReticule dir = 
+  cmapM (\(Reticule _, CellRef p@(V2 x y)) -> do
+    ls :: [(CellRef, Examine)] <- getAll
+    let pos = p + directionToVect dir
+    case lookup (CellRef pos) ls of 
+      Just (Examine msg) -> postMessage msg
+      _ -> pure ()
+    pure $ CellRef pos)

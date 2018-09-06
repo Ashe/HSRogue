@@ -35,17 +35,20 @@ initialise t f = void $ do
     , Position playerPos
     , CellRef playerCellRef
     , Character "You" 100 100 Neutral
-    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16))
+    , Examine "You")
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
     , Character "Chum" 100 100 Friendly
-    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16))
+    , Examine "Chum")
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 12 10)
-    , Character "Todd" 100 100 Aggressive
-    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
+    , Character "Tum" 100 100 Aggressive
+    , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16))
+    , Examine "Tum")
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()
@@ -84,6 +87,7 @@ draw renderer fps = do
   sequence_ <$> sequence 
     [ renderWorld renderer
     , drawComponents $ renderSprite renderer texs
+    , drawComponents $ renderReticule renderer
     , printMessages
     , displayFps renderer fps fonts "Assets/Roboto-Regular.ttf"
     ]

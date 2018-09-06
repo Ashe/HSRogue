@@ -14,8 +14,9 @@ module Common
 , directionToVect
 , toCIntRect
 , toCIntV2
-, renderSprite
 , renderWorld
+, renderSprite
+, renderReticule
 , renderSolidText
 , renderBlendedText
 , displayFps
@@ -43,7 +44,7 @@ import Characters
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
 makeWorld "World" [''Time, ''Messages, ''GameState, ''Textures, ''Fonts, ''GameMap, 
-  ''Player, ''Position, ''CellRef, ''Sprite, ''Character] 
+  ''Player, ''Reticule, ''Position, ''CellRef, ''Sprite, ''Character, ''Examine] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -97,13 +98,6 @@ toCIntRect (Rectangle (P (V2 x y)) (V2 i j)) =
 toCIntV2 :: V2 Double -> V2 CInt
 toCIntV2 (V2 x y) = V2 (round x) (round y)
 
--- Render textures
-renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
-renderSprite r ts (Sprite fp rect) (Position p) = 
-  case HM.lookup fp ts of
-    Just tex -> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize)) 0 Nothing (V2 False False)
-    _ -> pure ()
-
 -- Render the game world simplistically
 renderWorld :: SDL.Renderer -> System' (IO ())
 renderWorld r = do
@@ -112,6 +106,21 @@ renderWorld r = do
   pure $ ifoldl foldRow (pure ()) m
     where foldRow io y row = io <> ifoldl (foldidx y) (pure ()) row
           foldidx y io x t = io <> renderTileMessy r (V2 x y) t
+
+-- Render textures
+renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
+renderSprite r ts (Sprite fp rect) (Position p) = 
+  case HM.lookup fp ts of
+    Just tex -> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize)) 0 Nothing (V2 False False)
+    _ -> pure ()
+
+-- Render the target reticule
+renderReticule :: SDL.Renderer -> Reticule -> Position -> IO ()
+renderReticule r (Reticule on) (Position p)
+  | not on = pure ()
+  | on = do
+    rendererDrawColor r $= V4 255 255 255 20
+    fillRect r $ Just $ Rectangle (P $ toCIntV2 p) tileSize
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
