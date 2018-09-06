@@ -101,7 +101,8 @@ navigate dir = do
           modify p (\(CellRef _) -> CellRef (V2 x y))
         Fight e -> 
           destroy e (Proxy :: Proxy AllComps)
-      unless (null msg) $ postMessage msg
+      postMessage msg
+      actionStep
     Right msg -> 
       postMessage msg
 
@@ -131,11 +132,15 @@ toggleLook m = do
   modify global (\(a :: GameState) -> 
     if isLook then Game Standard else Game Look)
   ls :: [(Reticule, Entity)] <- getAll
-  [(Player, CellRef (V2 x y))] <- getAll 
-  let r = (Reticule $ not isLook, Position (V2 0 0), CellRef (V2 x y))
+  [(Player, CellRef p)] <- getAll 
+  let r = (Reticule $ not isLook, Position (V2 0 0), CellRef p)
   if not $ null ls
     then set (snd $ head ls) r
     else void $ newEntity r
+  es :: [(CellRef, Examine)] <- getAll
+  case lookup (CellRef p) es of 
+    Just (Examine msg) -> postMessage msg
+    _ -> pure ()
 
 -- Move the reticule for looking or aiming purposes
 moveReticule :: Direction -> System' ()

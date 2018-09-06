@@ -11,6 +11,7 @@ module Common
 , postMessage
 , printMessages
 , clearMessages
+, actionStep
 , directionToVect
 , toCIntRect
 , toCIntV2
@@ -59,6 +60,7 @@ type CharacterList = [(Character, CellRef, Entity)]
 
 -- Post a new message
 postMessage :: String -> System' ()
+postMessage [] = pure ()
 postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Print messages into console
@@ -70,6 +72,12 @@ printMessages = do
 -- Flush any messages
 clearMessages :: System' ()
 clearMessages = modify global (\(Messages _) -> Messages [])
+
+-- System called whenever the player performs a proper action
+actionStep :: System' ()
+actionStep = do
+  writeExamines
+  pure ()
 
 -- Display FPS
 displayFps :: SDL.Renderer -> Int -> FontMap -> String -> System' (IO ())
@@ -158,6 +166,12 @@ renderSolidText r fo = renderText r fo (SDL.Font.solid fo)
 -- Render blended text
 renderBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> V2 Int -> IO ()
 renderBlendedText r fo = renderText r fo (SDL.Font.blended fo)
+
+-- Place important information into examine messages
+writeExamines :: System' ()
+writeExamines = 
+  cmap(\(Character n h mH a) -> Examine $ 
+    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show mH)
 
 worldScale :: Double
 worldScale = 32
