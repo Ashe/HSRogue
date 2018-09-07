@@ -139,9 +139,10 @@ toggleLook m = do
     then set (snd $ head ls) r
     else void $ newEntity r
   es :: [(CellRef, Examine)] <- getAll
-  case lookup (CellRef p) es of 
-    Just (Examine msg) -> postMessage msg
-    _ -> pure ()
+  unless isLook $ 
+    case lookup (CellRef p) es of 
+      Just (Examine msg) -> postMessage msg
+      _ -> pure ()
 
 -- Move the reticule for looking or aiming purposes
 moveReticule :: Direction -> System' ()
