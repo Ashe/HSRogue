@@ -17,6 +17,7 @@ import qualified Common as C
 import Components
 import GameMap
 import Characters
+import ActionStep
 
 -- Handle the entire event payload
 handlePayload :: [EventPayload] -> System' ()

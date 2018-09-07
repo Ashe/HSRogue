@@ -19,6 +19,8 @@ import System.Exit (exitSuccess)
 import Common
 import Components
 import EventHandler
+import Draw
+import ActionStep
 import Resources
 import GameMap
 import Characters
@@ -72,23 +74,6 @@ step :: Double -> System' ()
 step dT = do
   incrTime dT
   snapEntities
-
--- Produce a system used for drawing
-drawComponents :: Get World c => (c -> Position -> IO ()) -> System' (IO ())
-drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
-
--- Create System' (IO ()) for everything depending on item drawn
-draw :: SDL.Renderer -> Int -> System' (IO ())
-draw renderer fps = do
-  Textures texs <- get global
-  Fonts fonts <- get global
-  sequence_ <$> sequence 
-    [ renderWorld renderer
-    , drawComponents $ renderSprite renderer texs
-    , drawComponents $ renderReticule renderer
-    , printMessages
-    , displayFps renderer fps fonts "Assets/Roboto-Regular.ttf"
-    ]
 
 -- Main program thread
 main :: IO ()

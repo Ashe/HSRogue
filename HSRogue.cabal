@@ -29,6 +29,8 @@ executable HSRogue
   other-modules:        Common,
                         Components,
                         EventHandler,
+                        Draw,
+                        ActionStep,
                         Resources,
                         GameMap,
                         Characters
