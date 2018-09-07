@@ -36,17 +36,17 @@ initialise t f = void $ do
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "You" 100 100 Neutral
+    , Character "You" 100 initialStats initialCombatStats Neutral
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
-    , Character "Chum" 100 100 Friendly
+    , Character "Chum" 100 initialStats initialCombatStats Friendly
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 12 10)
-    , Character "Tum" 100 100 Aggressive
+    , Character "Tum" 100 initialStats initialCombatStats Aggressive
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
   actionStep
 

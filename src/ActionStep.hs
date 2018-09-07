@@ -18,6 +18,6 @@ actionStep = do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap(\(Character n h mH a) -> Examine $ 
-    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show mH)
+  cmap(\(Character n h stats cbStats a) -> Examine $ 
+    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
 
