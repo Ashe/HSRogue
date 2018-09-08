@@ -73,6 +73,7 @@ triggerEvery dT period phase sys = do
 step :: Double -> System' ()
 step dT = do
   incrTime dT
+  floatTooltips dT
   snapEntities
 
 -- Main program thread

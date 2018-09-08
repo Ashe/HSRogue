@@ -15,10 +15,12 @@ module Components
 , CellRef(..)
 , Examine(..)
 , Sprite(..)
+, FloatingText(..)
 ) where
 
 import Apecs
 import SDL hiding (Vector)
+import qualified SDL.Font
 import qualified Data.HashMap as HM
 import Data.Vector
 
@@ -27,7 +29,7 @@ import GameMap
 import Characters
 
 -- Easy type for all non-global, non-player components
-type AllComps = (Position, CellRef, Sprite, Character)
+type AllComps = (Position, CellRef, Sprite, Character, FloatingText)
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time
@@ -93,3 +95,7 @@ instance Component Character where type Storage Character = Map Character
 -- Descriptions of entities when looking
 newtype Examine = Examine String deriving Show
 instance Component Examine where type Storage Examine = Map Examine
+
+-- Floating tooltips for combat etc
+data FloatingText = FloatingText String SDL.Font.Color deriving Show
+instance Component FloatingText where type Storage FloatingText = Map FloatingText

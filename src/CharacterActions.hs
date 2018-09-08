@@ -5,8 +5,10 @@ module CharacterActions
 ) where
 
 import Apecs
+import SDL.Vect
 
 import Common
+import Components
 import Characters
 
 -- Make one character attack another
@@ -14,9 +16,11 @@ attack :: Entity -> Entity -> System' ()
 attack a v = do
   ac :: Character <- get a
   vc :: Character <- get v
+  Position pos <- get v
   let damage = getDamage ac vc
       vc' = dealDamage damage vc
   set v vc'
+  spawnFloatingText (show damage) (V4 255 0 0 255) pos
   if health vc' > 0 then do
     postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"
     postMessage $ name vc' ++ " has " ++ show (health vc') ++ " health left!"
