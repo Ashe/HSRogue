@@ -33,4 +33,5 @@ executable HSRogue
                         ActionStep,
                         Resources,
                         GameMap,
-                        Characters
+                        Characters,
+                        CharacterActions

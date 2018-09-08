@@ -3,6 +3,7 @@ module Characters
 , Stats(..)
 , CombatStats(..)
 , Attitude(..)
+, calculateCombatStats
 , initialStats
 , initialCombatStats
 ) where
@@ -13,7 +14,7 @@ module Characters
 -- Max Health: The maximum capacity for the character's health
 -- Attitude: How the character will respond to the player's presence
 data Character = 
-  Character 
+  Character
     { name :: String
     , health :: Int
     , stats :: Stats
@@ -26,6 +27,7 @@ data Character =
 data Stats = 
   Stats
     { strength :: Int
+    , agility :: Int
     , toughness :: Int
     } deriving Show
 
@@ -35,16 +37,27 @@ data CombatStats =
   CombatStats
     { maxHealth :: Int
     , criticalChance :: Int
-    , criticalDamage :: Int
+    , criticalMult :: Double
+    , bonusDamage :: Int
     } deriving Show
 
 -- For defining relationships with people
 data Attitude = Friendly | Neutral | Aggressive deriving Show
 
+-- Calculate combat stats based on stats, equipment, skills and auras
+calculateCombatStats :: Stats -> CombatStats
+calculateCombatStats s = 
+  CombatStats 
+    { maxHealth = 20 * toughness s
+    , criticalChance = agility s
+    , criticalMult = 1.5
+    , bonusDamage = 0
+    }
+
 -- Default stats
 initialStats :: Stats
-initialStats = Stats 1 1
+initialStats = Stats 10 10 10
 
 -- Default combat stats
 initialCombatStats :: CombatStats
-initialCombatStats = CombatStats 100 0 0
+initialCombatStats = calculateCombatStats initialStats

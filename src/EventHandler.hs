@@ -17,6 +17,7 @@ import qualified Common as C
 import Components
 import GameMap
 import Characters
+import CharacterActions
 import ActionStep
 
 -- Handle the entire event payload
@@ -81,7 +82,7 @@ gameAction mode k =
           _ -> pure ()
 
 -- Things that can come from navigation
-data NavAction = Move | Swap Entity | Fight Entity deriving Show
+data NavAction = Move | Swap Entity Character | Fight Entity
 
 -- Move, swap, or fight in a given direction, standard navigation
 navigate :: Direction -> System' ()
@@ -90,36 +91,35 @@ navigate dir = do
   [(Player, CellRef pos, p)] <- getAll
   chars :: CharacterList <- getAll
   let dest = pos + directionToVect dir
-      valid = getNavAction m (dir, dest) chars
-  case valid of
-    Left (na, msg) -> do
+      action = getNavAction m (dir, dest) chars
+  case action of
+    Left na -> do
       case na of
         Move -> 
-          modify p (\(CellRef _) -> CellRef dest)
-        Swap e -> do
-          CellRef (V2 x y) <- get e
-          modify e (\(CellRef _) -> CellRef pos)
-          modify p (\(CellRef _) -> CellRef (V2 x y))
+          set p $ CellRef dest
+        Swap e c -> do
+          set e $ CellRef pos
+          set p $ CellRef dest
+          postMessage $ "You switch places with " ++ name c ++ "!"
         Fight e -> 
-          destroy e (Proxy :: Proxy AllComps)
-      postMessage msg
+          p `attack` e
       actionStep
     Right msg -> 
       postMessage msg
 
 -- Given a direction, find how to execute the player's intent
-getNavAction :: Grid -> (Direction, V2 Int) -> CharacterList -> Either (NavAction, String) String
+getNavAction :: Grid -> (Direction, V2 Int) -> CharacterList -> Either NavAction String
 getNavAction g (dir, dest) cs = 
   case tile of
     Nothing -> Right "Hmm.. You can't find a way to move there."
     Just tile -> 
       if tile == Empty
         then case charOnSpace of
-          Nothing -> Left (Move, "")
+          Nothing -> Left Move
           Just (c, _, e) -> 
             case attitude c of
-              Aggressive -> Left (Fight e, "You murder " ++ name c ++ "!")
-              Friendly -> Left (Swap e, "You switch places with " ++ name c ++ "!")
+              Aggressive -> Left $ Fight e
+              Friendly -> Left $ Swap e c
               Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
         else Right "Ouch! You bumped into a wall!"
   where tile = getTile g dest
