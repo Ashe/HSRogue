@@ -6,6 +6,7 @@ module CharacterActions
 
 import Apecs
 import SDL.Vect
+import SDL.Font
 
 import System.Random
 
@@ -21,8 +22,9 @@ attack a v = do
   Position pos <- get v
   damage <- liftIO $ getDamage ac vc
   let vc' = dealDamage damage vc
+      colour = getPopupColour (health vc') (maxHealth $ combatStats vc')
   set v vc'
-  spawnFloatingText (show damage) (V4 255 0 0 255) pos
+  spawnFloatingText (show damage) colour pos
   if health vc' > 0 then do
     postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"
     postMessage $ name vc' ++ " has " ++ show (health vc') ++ " health left!"
@@ -40,3 +42,12 @@ getDamage atk def = do
 -- Deal simple damage to enemy health
 dealDamage :: Int -> Character -> Character
 dealDamage d c = c { health = health c - d}
+
+-- Get the popup colour based on health left
+getPopupColour :: Int -> Int -> SDL.Font.Color
+getPopupColour h max 
+  | percent > 0.75 = V4 255 255 255 255
+  | percent > 0.5 = V4 0 255 0 255
+  | percent > 0.25 = V4 255 165 0 255
+  | otherwise = V4 255 0 0 255
+  where percent = fromIntegral h / fromIntegral max
