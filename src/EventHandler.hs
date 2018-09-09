@@ -18,6 +18,7 @@ import Components
 import GameMap
 import Characters
 import CharacterActions
+import WorldSimulation
 import ActionStep
 
 -- Handle the entire event payload
@@ -40,6 +41,14 @@ handleKeyEvent ev = do
         Game mode -> gameAction mode code
         Interface -> postMessage "Interface state not implemented yet"
     Released -> pure ()
+
+-- The player has made their move and is ready to simulate
+-- This spends the player's energy
+playerActionStep :: Entity -> Int -> System' ()
+playerActionStep p cost = do
+  cmap (\(Player, c :: Character) -> c { energy = energy c + cost})
+  actionStep
+  simulateWorld
 
 -- Use GameState to determine the context of input
 -- Use context specific bindings to ascertain intent
@@ -88,7 +97,7 @@ data NavAction = Move | Swap Entity Character | Fight Entity
 navigate :: Direction -> System' ()
 navigate dir = do
   GameMap m <- get global
-  [(Player, CellRef pos, p)] <- getAll
+  [(Player, CellRef pos, pChar :: Character, p)] <- getAll
   chars :: CharacterList <- getAll
   let dest = pos + directionToVect dir
       action = getNavAction m (dir, dest) chars
@@ -103,7 +112,7 @@ navigate dir = do
           postMessage $ "You switch places with " ++ name c ++ "!"
         Fight e -> 
           p `attack` e
-      actionStep
+      playerActionStep p 100
     Right msg -> 
       postMessage msg
 

@@ -20,6 +20,7 @@ import Common
 import Components
 import EventHandler
 import Draw
+import WorldSimulation
 import ActionStep
 import Resources
 import GameMap
@@ -36,19 +37,19 @@ initialise t f = void $ do
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "You" 200 initialStats initialCombatStats Neutral
+    , Character "You" 200 0 0 initialStats initialCombatStats Neutral
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
-    , Character "Chum" 200 initialStats initialCombatStats Friendly
+    , Character "Chum" 200 0 0 initialStats initialCombatStats Friendly
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
   newEntity 
     ( Position (V2 0 0)
     , CellRef (V2 12 10)
-    , Character "Tum" 200 initialStats initialCombatStats Aggressive
+    , Character "Tum" 200 0 0 initialStats initialCombatStats Aggressive
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
-  actionStep
+  readyPlayer
 
 -- When called, manipulates the global time component
 incrTime :: Double -> System' ()

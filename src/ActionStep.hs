@@ -9,19 +9,21 @@ import SDL
 
 import Control.Monad(when)
 
-import Components
 import Common
+import Components
 import Characters
 
--- System called whenever the player performs a proper action
+-- System called whenever a character performs something
+-- This needs to be NON-DESTRUCTIVE and IMPORTANT
+-- It happens per character not per turn
 actionStep :: System' ()
 actionStep = do
   killDeadCharacters
   writeCombatStats
   capHealths
-  writeExamines
 
 -- Kill any characters with zero health
+-- We don't want characters targetting dead people
 killDeadCharacters :: System' ()
 killDeadCharacters = do
   ls :: [(Character, Entity)] <- getAll
@@ -29,18 +31,14 @@ killDeadCharacters = do
     destroy e (Proxy :: Proxy AllComps)) ls
 
 -- Updates combat stats for each character
+-- Potions or debuffs must be instant
 writeCombatStats :: System' ()
 writeCombatStats = cmap (\(c :: Character) -> c {
   combatStats = calculateCombatStats $ stats c })
 
 -- Ensure that no-one's healths are above maximum
+-- Nothing should make the character's health go over
 capHealths :: System' ()
 capHealths = cmap (\(c :: Character) -> c {
   health = min (health c) (maxHealth $ combatStats c)})
-
--- Place important information into examine messages
-writeExamines :: System' ()
-writeExamines = 
-  cmap (\(Character n h stats cbStats a) -> Examine $ 
-    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
 
