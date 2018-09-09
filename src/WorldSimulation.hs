@@ -6,17 +6,23 @@ module WorldSimulation
 ) where
 
 import Apecs
-import SDL
+import SDL.Vect
+import qualified SDL
 
-import Control.Monad(when)
+import Control.Monad(when, unless)
 
 import Common
 import Components
 import Characters
+import CharacterActions
+import ActionStep
+import GameMap
 
 -- Simulate the world, advancing time until the player must act
 simulateWorld :: System' ()
 simulateWorld = do
+  snapEntities
+  simulateCharacters
   regenHealthAndEnergy
   [(Player, c :: Character, e :: Entity)] <- getAll
   if energy c > 0
@@ -29,6 +35,16 @@ readyPlayer :: System' ()
 readyPlayer = do
   writeExamines
   pure ()
+
+-- Easy type synonym
+type Comps = (Character, CellRef, Entity)
+
+-- Make all non-player characters act if they have enough energy
+simulateCharacters :: System' ()
+simulateCharacters = do
+  GameMap m <- get global
+  ls :: [Comps] <- getAll
+  mapM_ (manipulateCharacter m ls) ls
 
 -- Regenerate every character's health and decrease cooldowns
 regenHealthAndEnergy :: System' ()
@@ -51,6 +67,27 @@ regenHealthAndEnergy = cmapM (\(c :: Character, Position p) -> do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap (\(Character n h _ _ stats cbStats a) -> Examine $ 
-    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
+  cmap (\(Character n h e _ stats cbStats a) -> Examine $ 
+    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats) ++ " Energy: " ++ show e)
 
+-- Manipulate each character with respect to the map and other chars
+-- This is a BIG function. For now, check attitude and attack the player
+manipulateCharacter :: Grid -> [Comps] -> Comps ->  System' ()
+manipulateCharacter gm ls (c, CellRef p, e) =
+  unless (energy c > 0) $ 
+    case attitude c of
+      Aggressive ->
+        meleeCloseTargets e (map (\(_, cell, ent) -> (cell, ent)) ls) p
+      _ -> pure ()
+
+-- Attack entities in range
+meleeCloseTargets :: Entity -> [(CellRef, Entity)] -> V2 Int -> System' ()
+meleeCloseTargets this ls (V2 x y) = do
+  let allDirs = [CellRef $ V2 (x + i) (y + j) | i <- [-1 .. 1], j <- [-1 .. 1]]
+      es = foldl (\eList dir -> eList ++ 
+        case lookup dir ls of 
+          Just e -> if this == e then [] else [e]
+          _ -> []) [] allDirs
+  unless (null es) $ do
+    this `attack` head es
+    actionStep

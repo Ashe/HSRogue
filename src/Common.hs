@@ -11,6 +11,7 @@ module Common
 , postMessage
 , printMessages
 , clearMessages
+, snapEntities
 , spawnFloatingText
 , floatTooltips
 , directionToVect
@@ -70,6 +71,13 @@ printMessages = do
 -- Flush any messages
 clearMessages :: System' ()
 clearMessages = modify global (\(Messages _) -> Messages [])
+
+-- Converts cell references to game position
+snapEntities :: System' ()
+snapEntities = 
+  cmap $ \(Position (V2 _ _), CellRef (V2 x y)) ->
+    Position (V2 (calc x) (calc y))
+      where calc n = worldScale * fromIntegral n
 
 -- Spawn a floating tooltip
 spawnFloatingText :: String -> SDL.Font.Color -> V2 Double -> System' ()

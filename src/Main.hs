@@ -55,13 +55,6 @@ initialise t f = void $ do
 incrTime :: Double -> System' ()
 incrTime dT = modify 0 $ \(Time t) -> Time (t+dT)
 
--- Converts cell references to game position
-snapEntities :: System' ()
-snapEntities = 
-  cmap $ \(Position (V2 _ _), CellRef (V2 x y)) ->
-    Position (V2 (calc x) (calc y))
-      where calc n = worldScale * fromIntegral n
-
 -- Runs a system periodically
 triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
 triggerEvery dT period phase sys = do

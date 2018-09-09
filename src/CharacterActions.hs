@@ -15,19 +15,21 @@ import Components
 import Characters
 
 -- Make one character attack another
+-- The attacker incurs energy cost no matter what
 attack :: Entity -> Entity -> System' ()
 attack a v = do
   ac :: Character <- get a
   vc :: Character <- get v
+  set a $ ac { energy = 100}
   Position pos <- get v
   damage <- liftIO $ getDamage ac vc
   let vc' = dealDamage damage vc
       colour = getPopupColour (health vc') (maxHealth $ combatStats vc')
   set v vc'
   spawnFloatingText (show damage) colour pos
-  if health vc' > 0 then do
-    postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"
-    postMessage $ name vc' ++ " has " ++ show (health vc') ++ " health left!"
+  if health vc' > 0 then
+    postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage! " ++
+      name vc' ++ " has " ++ show (health vc') ++ " health left!"
   else
     postMessage $ name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"
 

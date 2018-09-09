@@ -44,9 +44,11 @@ handleKeyEvent ev = do
 
 -- The player has made their move and is ready to simulate
 -- This spends the player's energy
-playerActionStep :: Entity -> Int -> System' ()
-playerActionStep p cost = do
-  cmap (\(Player, c :: Character) -> c { energy = energy c + cost})
+playerActionStep :: Int -> System' ()
+playerActionStep cost = do
+  when (cost > 0) $ do
+    [(Player, c, p)] <- getAll
+    set p $ c { energy = cost}
   actionStep
   simulateWorld
 
@@ -55,6 +57,7 @@ playerActionStep p cost = do
 data GameIntent
   = Navigate Direction
   | ToggleLook
+  | Wait
   deriving (Read, Show, Eq)
 
 -- Initial bindings for intents
@@ -70,8 +73,9 @@ defaultGameIntents =
   , (KeycodeRight , Navigate C.Right)
   , (KeycodeL, Navigate C.Right)
 
-  -- Nav modes
+  -- Other functions
   , (KeycodeSemicolon, ToggleLook)
+  , (KeycodeW, Wait)
   ]
 
 -- For keyboard events that  take place in the game
@@ -83,6 +87,9 @@ gameAction mode k =
         case intents of
           Just (Navigate dir) -> navigate dir
           Just ToggleLook -> toggleLook mode
+          Just Wait -> do
+            postMessage "You wait.."
+            playerActionStep 100
           _ -> pure ()
       Look -> 
         case intents of
@@ -102,17 +109,19 @@ navigate dir = do
   let dest = pos + directionToVect dir
       action = getNavAction m (dir, dest) chars
   case action of
-    Left na -> do
+    Left na ->
       case na of
-        Move -> 
+        Move -> do
           set p $ CellRef dest
+          playerActionStep 100
         Swap e c -> do
           set e $ CellRef pos
           set p $ CellRef dest
           postMessage $ "You switch places with " ++ name c ++ "!"
-        Fight e -> 
+          playerActionStep 100
+        Fight e -> do
           p `attack` e
-      playerActionStep p 100
+          playerActionStep 0
     Right msg -> 
       postMessage msg
 
