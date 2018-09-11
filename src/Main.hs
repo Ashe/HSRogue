@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-import Apecs 
+import Apecs
 
 import SDL.Vect
 import SDL(($=))
@@ -30,21 +30,21 @@ import Characters
 -- this system simply creates an entity
 initialise :: [TexResource] -> [FontResource] -> System' ()
 initialise t f = void $ do
-  modify global (\(Textures _) -> Textures $ createResourceMap t)
-  modify global (\(Fonts _) -> Fonts $ createResourceMap f)
-  modify global (\(GameMap _) -> GameMap $ generateBlankMap (V2 20 20) Empty)
-  newEntity 
+  set global $ Textures $ createResourceMap t
+  set global $ Fonts $ createResourceMap f
+  set global $ GameMap $ generateBlankMap (V2 20 20) Empty
+  newEntity
     ( Player
     , Position playerPos
     , CellRef playerCellRef
     , Character "You" 200 0 0 initialStats initialCombatStats Neutral
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
-  newEntity 
+  newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
     , Character "Chum" 200 0 0 initialStats initialCombatStats Friendly
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
-  newEntity 
+  newEntity
     ( Position (V2 0 0)
     , CellRef (V2 12 10)
     , Character "Tum" 200 0 0 initialStats initialCombatStats Aggressive
@@ -74,7 +74,7 @@ step dT = do
 main :: IO ()
 main = do
   world <- initWorld
-  
+
   -- Initialise SDL
   SDL.initialize [SDL.InitVideo]
   SDL.Font.initialize
@@ -102,7 +102,7 @@ main = do
         let quit = SDL.QuitEvent `elem` payload
             dt = ticks - prevTicks
             calcFps = secondTick + dt > 1000
-            newFps = if calcFps then fpsAcc + 1 else prevFps 
+            newFps = if calcFps then fpsAcc + 1 else prevFps
             newFpsAcc = if calcFps then 1 else fpsAcc + 1
             newSecondTick = if calcFps then mod (secondTick + dt) 1000 else secondTick + dt
 
@@ -127,5 +127,3 @@ main = do
   SDL.quit
   putStrLn "Goodbye! (◠‿◠✿)"
   exitSuccess
-
-
