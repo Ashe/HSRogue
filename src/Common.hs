@@ -6,6 +6,7 @@ module Common
 ( World(..)
 , initWorld
 , System'
+, FPS
 , Direction(..)
 , CharacterList
 , postMessage
@@ -42,12 +43,15 @@ import Characters
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''Messages, ''GameState, ''Textures, ''Fonts, ''GameMap, 
-  ''Player, ''Reticule, ''Position, ''CellRef, ''Sprite, ''Character, ''Examine,
-  ''FloatingText] 
+makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''Fonts , ''GameMap
+                  , ''Player, ''Reticule, ''Position, ''CellRef, ''Sprite , ''Character , ''Examine
+                  , ''FloatingText] 
 
 -- Easy type synonym for systems
 type System' a = System World a
+
+-- Easy FPS 
+type FPS = Int
 
 -- Types for Directions
 data Direction = 
@@ -106,12 +110,11 @@ directionToVect UpLeft = V2 (-1) (-1)
 
 -- Conversion from Int Rectangle to CInt Rectangle
 toCIntRect :: Rectangle Int -> Rectangle CInt
-toCIntRect (Rectangle (P (V2 x y)) (V2 i j)) = 
-  Rectangle (P (V2 (fromIntegral x) (fromIntegral y))) (V2 (fromIntegral i) (fromIntegral j))
+toCIntRect r = fromIntegral <$> r
 
 -- Conversion from Int Vector to CInt Vector
 toCIntV2 :: V2 Double -> V2 CInt
-toCIntV2 (V2 x y) = V2 (round x) (round y)
+toCIntV2 = fmap round
 
 worldScale :: Double
 worldScale = 32

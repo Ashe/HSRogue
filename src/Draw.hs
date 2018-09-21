@@ -29,18 +29,18 @@ import GameMap
 import Characters
 
 -- Create System' (IO ()) for everything depending on item drawn
-draw :: SDL.Renderer -> Int -> System' (IO ())
-draw renderer fps = do
+draw :: SDL.Renderer -> FPS -> System' (IO ())
+draw r fps = do
   Textures texs <- get global
   Fonts fonts <- get global
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
   sequence_ <$> sequence 
-    [ renderWorld renderer
-    , drawComponents $ renderSprite renderer texs
-    , drawComponents $ renderReticule renderer
-    , drawComponents $ renderFloatingText renderer uiFont
+    [ renderWorld r
+    , drawComponents $ renderSprite r texs
+    , drawComponents $ renderReticule r
+    , drawComponents $ renderFloatingText r uiFont
+    , displayFps r fps uiFont
     , printMessages
-    , displayFps renderer fps uiFont
     ]
 
 -- Produce a system used for drawing
@@ -60,7 +60,8 @@ renderWorld r = do
 renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
 renderSprite r ts (Sprite fp rect) (Position p) = 
   case HM.lookup fp ts of
-    Just tex -> SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize')) 0 Nothing (V2 False False)
+    Just tex -> 
+      SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize')) 0 Nothing (V2 False False)
     _ -> pure ()
 
 -- Render the target reticule

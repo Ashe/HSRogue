@@ -26,6 +26,7 @@ executable HSRogue
                         containers,
                         hashmap,
                         vector,
+                        matrix,
                         text
   other-modules:        Common,
                         Components,

@@ -12,6 +12,7 @@ import qualified SDL
 import qualified SDL.Image(quit)
 import qualified SDL.Font
 import Data.Fixed
+import Foreign.C (CInt)
 
 import Control.Monad
 import System.Exit (exitSuccess)
@@ -28,8 +29,10 @@ import Characters
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
-initialise :: [TexResource] -> [FontResource] -> System' ()
-initialise t f = void $ do
+initialise :: SDL.WindowConfig -> [TexResource] -> [FontResource] -> System' ()
+initialise conf t f = void $ do
+  let ws = fromIntegral <$> SDL.windowInitialSize conf
+  set global $ WindowSize ws
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
   set global $ GameMap $ generateBlankMap (V2 20 20) Empty
@@ -80,7 +83,8 @@ main = do
   SDL.Font.initialize
 
   -- Create a window and renderer
-  window <- SDL.createWindow "App" SDL.defaultWindow
+  let windowConfig = SDL.defaultWindow
+  window <- SDL.createWindow "App" windowConfig
   renderer <-
       SDL.createRenderer window (-1)
         SDL.RendererConfig
@@ -91,7 +95,7 @@ main = do
   -- Load resources and initialise game
   texs <- loadTextures renderer ["Assets/sprites.png"]
   fonts <- loadFonts [("Assets/Roboto-Regular.ttf", 12)]
-  runSystem (initialise texs fonts) world
+  runSystem (initialise windowConfig texs fonts) world
 
   -- Display the game
   SDL.showWindow window

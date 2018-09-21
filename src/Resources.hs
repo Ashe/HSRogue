@@ -16,9 +16,9 @@ import SDL.Font
 
 import Data.HashMap as HM
 
--- Turns a list of key value pairs into a hashamp for a resource component
+-- Turns a list of key value pairs into a hashmap for a resource component
 createResourceMap :: [(String, a)] -> HM.Map String a
-createResourceMap = foldl (\m (k, v) -> insert k v m) empty 
+createResourceMap = foldl (\m (k, v) -> insert k v m) empty
 
 -- Types for creating textures
 type TexResource = (String, Texture)

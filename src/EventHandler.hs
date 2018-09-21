@@ -7,9 +7,9 @@ module EventHandler
 import Apecs hiding (Map)
 import SDL hiding (get)
 
-import Control.Monad(when, unless, void)
+import Control.Monad(when, unless, void, forM_)
 import Control.Monad.IO.Class
-import Data.Maybe(isNothing)
+import Data.Maybe(isNothing, isJust)
 import Data.List(find)
 
 import Common hiding (Left, Right, Down, Up)
@@ -28,7 +28,14 @@ handlePayload = mapM_ handleEvent
 -- The main event handler function for dealing with keypresses
 handleEvent :: EventPayload -> System' ()
 handleEvent (KeyboardEvent ev) = handleKeyEvent ev
+handleEvent (WindowResizedEvent ev) = handleResizeEvent ev
 handleEvent _ = pure ()
+
+-- Handling of the window changing size
+handleResizeEvent :: WindowResizedEventData -> System' ()
+handleResizeEvent (WindowResizedEventData _ s) = 
+  set global $ WindowSize $ fromIntegral <$> s
+
 
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()

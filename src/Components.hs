@@ -3,6 +3,7 @@
 module Components
 ( AllComps
 , Time(..)
+, WindowSize(..)
 , Messages(..)
 , GameState(..)
 , Textures(..)
@@ -37,6 +38,12 @@ newtype Time = Time Double deriving Show
 instance Semigroup Time where (<>) = mappend
 instance Monoid Time where mempty = Time 0
 instance Component Time where type Storage Time = Global Time
+
+-- Global store of window size
+newtype WindowSize = WindowSize (V2 Int) deriving Show
+instance Semigroup WindowSize where (<>) = mappend
+instance Monoid WindowSize where mempty = WindowSize (V2 0 0)
+instance Component WindowSize where type Storage WindowSize = Global WindowSize
 
 -- Global component used for debugging and reporting
 newtype Messages = Messages [String] deriving Show
