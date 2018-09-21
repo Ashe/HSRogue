@@ -20,13 +20,17 @@ import Data.Text(Text, pack)
 import Control.Monad(unless, when)
 import Control.Arrow((***))
 
-import Data.Vector (ifoldl)
+import Data.Matrix
+import Data.Vector(ifoldl)
 
 import Common
 import Components
 import Resources
 import GameMap
 import Characters
+
+-- Type synonym for fonts
+type FontFunction = SDL.Font.Color -> Data.Text.Text -> IO SDL.Surface
 
 -- Create System' (IO ()) for everything depending on item drawn
 draw :: SDL.Renderer -> FPS -> System' (IO ())
@@ -52,9 +56,9 @@ renderWorld :: SDL.Renderer -> System' (IO ())
 renderWorld r = do
   GameMap m <- get global
   rendererDrawColor r $= V4 255 255 255 255
-  pure $ ifoldl foldRow (pure ()) m
-    where foldRow io y row = io <> ifoldl (foldidx y) (pure ()) row
-          foldidx y io x t = io <> renderTileMessy r (V2 x y) t
+  pure $ ifoldl (foldm m) (pure ()) $ getMatrixAsVector m
+    where foldm m io i t = let c = ncols m; y = i `div` c; x = i `mod` c; in
+            io <> renderTileMessy r (V2 x y) t
 
 -- Render textures
 renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
@@ -87,8 +91,7 @@ renderTileMessy r (V2 x y) t =
       _ -> pure ()
         
 -- Render text to the screen easily
-renderText :: SDL.Renderer -> SDL.Font.Font -> (SDL.Font.Color -> Data.Text.Text -> IO SDL.Surface) ->
-           SDL.Font.Color -> String -> V2 CInt -> Bool -> IO ()
+renderText :: SDL.Renderer -> SDL.Font.Font -> FontFunction -> SDL.Font.Color -> String -> V2 CInt -> Bool -> IO ()
 renderText r fo fu c t (V2 x y) center = do
   let text = Data.Text.pack t
   surface <- fu c text
@@ -96,11 +99,11 @@ renderText r fo fu c t (V2 x y) center = do
   SDL.freeSurface surface
   fontSize <- SDL.Font.size fo text
   let (w, h) = (fromIntegral *** fromIntegral) fontSize
-  unless center $
-    SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x y) (V2 w h)))
-  when center $ do
-    let x' = x - fromIntegral (fst fontSize `div` 2)
+  if center then
+    let x' = x - fromIntegral (fst fontSize `div` 2) in
     SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x' y) (V2 w h)))
+  else
+    SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x y) (V2 w h)))
   SDL.destroyTexture texture
 
 -- Render solid text

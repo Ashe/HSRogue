@@ -9,6 +9,7 @@ module Components
 , Textures(..)
 , Fonts(..)
 , GameMode(..)
+, Tile(..)
 , GameMap(..)
 , Player(..)
 , Reticule(..)
@@ -23,10 +24,9 @@ import Apecs
 import SDL hiding (Vector)
 import qualified SDL.Font
 import qualified Data.HashMap as HM
-import Data.Vector
+import Data.Matrix
 
 import Resources
-import GameMap
 import Characters
 
 -- Easy type for all non-global, non-player components
@@ -71,10 +71,11 @@ instance Monoid GameState where mempty = Game Standard
 instance Component GameState where type Storage GameState = Global GameState
 
 -- Global store of the current game map
-newtype GameMap = GameMap Grid
+data Tile = Empty | Solid deriving (Show, Eq)
+newtype GameMap = GameMap (Matrix Tile)
 instance Component GameMap where type Storage GameMap = Global GameMap
 instance Semigroup GameMap where (<>) = mappend
-instance Monoid GameMap where mempty = GameMap empty
+instance Monoid GameMap where mempty = GameMap $ fromList 0 0 []
 
 -- Unique component, either one or none exists
 data Player = Player deriving Show

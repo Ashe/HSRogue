@@ -38,7 +38,6 @@ import Data.Vector (ifoldl)
 
 import Components
 import Resources
-import GameMap
 import Characters
 
 -- Uses templateHaskell to create the data 'World'

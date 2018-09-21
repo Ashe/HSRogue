@@ -11,6 +11,7 @@ import Control.Monad(when, unless, void, forM_)
 import Control.Monad.IO.Class
 import Data.Maybe(isNothing, isJust)
 import Data.List(find)
+import Data.Matrix
 
 import Common hiding (Left, Right, Down, Up)
 import qualified Common as C
@@ -35,7 +36,6 @@ handleEvent _ = pure ()
 handleResizeEvent :: WindowResizedEventData -> System' ()
 handleResizeEvent (WindowResizedEventData _ s) = 
   set global $ WindowSize $ fromIntegral <$> s
-
 
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()
@@ -133,7 +133,7 @@ navigate dir = do
       postMessage msg
 
 -- Given a direction, find how to execute the player's intent
-getNavAction :: Grid -> (Direction, V2 Int) -> CharacterList -> Either NavAction String
+getNavAction :: Matrix Tile -> (Direction, V2 Int) -> CharacterList -> Either NavAction String
 getNavAction g (dir, dest) cs = 
   case tile of
     Nothing -> Right "Hmm.. You can't find a way to move there."

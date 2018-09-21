@@ -35,7 +35,7 @@ initialise conf t f = void $ do
   set global $ WindowSize ws
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
-  set global $ GameMap $ generateBlankMap (V2 20 20) Empty
+  set global $ GameMap $ generateIdentityMap (V2 20 20)
   newEntity
     ( Player
     , Position playerPos
@@ -49,7 +49,7 @@ initialise conf t f = void $ do
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
   newEntity
     ( Position (V2 0 0)
-    , CellRef (V2 12 10)
+    , CellRef (V2 8 15)
     , Character "Tum" 200 0 0 initialStats initialCombatStats Aggressive
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
   readyPlayer

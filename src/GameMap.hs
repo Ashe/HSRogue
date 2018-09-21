@@ -1,28 +1,32 @@
 module GameMap 
-( Grid
-, Row
-, Tile(..)
-, getTile
+( getTile
 , generateBlankMap
+, generateIdentityMap
 ) where
 
 import SDL hiding (Vector)
-import Data.Vector
+import Data.Matrix
+import Data.Vector(ifoldl)
+import Debug.Trace (traceShow)
 
--- Data for describing the traversability of a world tile
-data Tile = Empty | Solid deriving (Show, Eq)
+import Common
+import Components
 
--- Easy type synonyms
-type Row = Vector Tile
-type Grid = Vector Row
+-- Matrix accessor with V2 support
+getTile :: Matrix Tile -> V2 Int -> Maybe Tile
+getTile m p@(V2 x y) = safeGet (x+1) (y+1) m
 
--- Easy function for accessing the game map
-getTile :: Grid -> V2 Int -> Maybe Tile
-getTile gm (V2 x y) = genMap (gm !? y)
-  where genMap (Just row) = row !? x
-        genMap _ = Nothing
+-- Iterate through the matrix easily
+iterateMatrix :: Matrix Tile -> (a -> V2 Int -> Tile -> a) -> a -> a
+iterateMatrix m func s = ifoldl (\p i n -> func p (pos i) n) s mat
+  where pos i = let c = ncols m in V2 (i `mod` c) (i `div` c)
+        mat = getMatrixAsVector m
 
--- Trivial map filled with the given tile
-generateBlankMap :: V2 Int -> Tile -> Grid
-generateBlankMap (V2 x y) t = generate y (const $ generate x (const t))
+-- Easy function for a blank map
+generateBlankMap :: V2 Int -> Tile -> Matrix Tile
+generateBlankMap (V2 w h) t = matrix w h (const t)
 
+-- Identity map
+generateIdentityMap :: V2 Int -> Matrix Tile
+generateIdentityMap (V2 w h) = matrix w h (\(x, y) ->
+  if x == y then Solid else Empty)

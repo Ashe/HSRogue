@@ -9,6 +9,7 @@ import Apecs
 import SDL.Vect
 import qualified SDL
 
+import Data.Matrix
 import Control.Monad(when, unless)
 
 import Common
@@ -72,7 +73,7 @@ writeExamines =
 
 -- Manipulate each character with respect to the map and other chars
 -- This is a BIG function. For now, check attitude and attack the player
-manipulateCharacter :: Grid -> [Comps] -> Comps ->  System' ()
+manipulateCharacter :: Matrix Tile -> [Comps] -> Comps ->  System' ()
 manipulateCharacter gm ls (c, CellRef p, e) =
   unless (energy c > 0) $ 
     case attitude c of
