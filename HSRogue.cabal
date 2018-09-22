@@ -22,9 +22,10 @@ executable HSRogue
                         sdl2,
                         sdl2-image,
                         sdl2-ttf,
+                        astar,
                         random,
                         containers,
-                        hashmap,
+                        unordered-containers,
                         vector,
                         matrix,
                         text

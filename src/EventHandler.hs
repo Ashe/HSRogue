@@ -73,12 +73,16 @@ defaultGameIntents =
   -- Navigation
   [ (KeycodeUp , Navigate C.Up)
   , (KeycodeK, Navigate C.Up)
+  , (KeycodeY, Navigate C.UpLeft)
   , (KeycodeLeft , Navigate C.Left)
   , (KeycodeH, Navigate C.Left)
+  , (KeycodeB, Navigate C.DownLeft)
   , (KeycodeDown , Navigate C.Down)
   , (KeycodeJ, Navigate C.Down)
+  , (KeycodeN, Navigate C.DownRight)
   , (KeycodeRight , Navigate C.Right)
   , (KeycodeL, Navigate C.Right)
+  , (KeycodeU, Navigate C.UpRight)
 
   -- Other functions
   , (KeycodeSemicolon, ToggleLook)

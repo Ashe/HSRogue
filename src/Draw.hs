@@ -15,7 +15,7 @@ import SDL hiding (get, Vector)
 import SDL.Font
 
 import Foreign.C
-import Data.HashMap as HM
+import Data.HashMap.Strict as HM
 import Data.Text(Text, pack)
 import Control.Monad(unless, when)
 import Control.Arrow((***))

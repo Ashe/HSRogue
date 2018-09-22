@@ -23,7 +23,7 @@ module Components
 import Apecs
 import SDL hiding (Vector)
 import qualified SDL.Font
-import qualified Data.HashMap as HM
+import qualified Data.HashMap.Strict as HM
 import Data.Matrix
 
 import Resources
