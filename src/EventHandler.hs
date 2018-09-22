@@ -28,6 +28,7 @@ handlePayload = mapM_ handleEvent
   
 -- The main event handler function for dealing with keypresses
 handleEvent :: EventPayload -> System' ()
+handleEvent (MouseButtonEvent ev) = handleMouseEvent ev
 handleEvent (KeyboardEvent ev) = handleKeyEvent ev
 handleEvent (WindowResizedEvent ev) = handleResizeEvent ev
 handleEvent _ = pure ()
@@ -36,6 +37,52 @@ handleEvent _ = pure ()
 handleResizeEvent :: WindowResizedEventData -> System' ()
 handleResizeEvent (WindowResizedEventData _ s) = 
   set global $ WindowSize $ fromIntegral <$> s
+
+-- For handling mouse events
+handleMouseEvent :: MouseButtonEventData -> System' ()
+handleMouseEvent (MouseButtonEventData _ bm _ b _ (P p)) =
+  case bm of
+    Pressed -> do
+      (state :: GameState) <- get global
+      case state of 
+        Game m -> ingameMouseAction m b (fromIntegral <$> p)
+        Interface -> pure ()
+    Released -> pure ()
+
+convertToTileCoords :: Matrix Tile -> V2 Int -> Maybe (V2 Int)
+convertToTileCoords m (V2 x y) = const p <$> getTile m p
+  where p = let (V2 w h) = tileSize in V2 (x `div` w) (y `div` h)
+
+-- Do something in game in response to the mouse
+ingameMouseAction :: GameMode -> MouseButton -> V2 Int -> System' ()
+ingameMouseAction m b p = do
+  GameMap mp <- get global
+  let tile = convertToTileCoords mp p
+  case b of
+    ButtonLeft -> 
+      case m of
+        Standard -> 
+          case tile of
+            Just tp -> pathfindPlayer mp tp
+            _ -> pure ()
+        Look -> toggleLook m
+    ButtonRight -> 
+      case tile of
+        Just tp -> do
+          examinePos tp
+          cmap (\(Reticule _, CellRef _) -> CellRef tp)
+        Nothing -> pure ()
+    _ -> pure ()
+
+-- Attempt to move the player to specified location
+pathfindPlayer :: Matrix Tile  -> V2 Int -> System' ()
+pathfindPlayer m dest = do
+  [(Player, CellRef p)] <- getAll
+  case pathfind m p dest of
+    Just path -> do
+      set global $ PlayerPath path
+      executePath p
+    _ -> pure ()
 
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()
@@ -48,16 +95,6 @@ handleKeyEvent ev = do
         Game mode -> gameAction mode code
         Interface -> postMessage "Interface state not implemented yet"
     Released -> pure ()
-
--- The player has made their move and is ready to simulate
--- This spends the player's energy
-playerActionStep :: Int -> System' ()
-playerActionStep cost = do
-  when (cost > 0) $ do
-    [(Player, c, p)] <- getAll
-    set p $ c { energy = cost}
-  actionStep
-  simulateWorld
 
 -- Use GameState to determine the context of input
 -- Use context specific bindings to ascertain intent
@@ -96,7 +133,7 @@ gameAction mode k =
     case mode of
       Standard -> 
         case intents of
-          Just (Navigate dir) -> navigate dir
+          Just (Navigate dir) -> navigatePlayer dir
           Just ToggleLook -> toggleLook mode
           Just Wait -> do
             postMessage "You wait.."
@@ -107,53 +144,6 @@ gameAction mode k =
           Just (Navigate dir) -> moveReticule dir
           Just ToggleLook -> toggleLook mode
           _ -> pure ()
-
--- Things that can come from navigation
-data NavAction = Move | Swap Entity Character | Fight Entity
-
--- Move, swap, or fight in a given direction, standard navigation
-navigate :: Direction -> System' ()
-navigate dir = do
-  GameMap m <- get global
-  [(Player, CellRef pos, pChar :: Character, p)] <- getAll
-  chars :: CharacterList <- getAll
-  let dest = pos + directionToVect dir
-      action = getNavAction m (dir, dest) chars
-  case action of
-    Left na ->
-      case na of
-        Move -> do
-          set p $ CellRef dest
-          playerActionStep 100
-        Swap e c -> do
-          set e $ CellRef pos
-          set p $ CellRef dest
-          postMessage $ "You switch places with " ++ name c ++ "!"
-          playerActionStep 100
-        Fight e -> do
-          p `attack` e
-          playerActionStep 0
-    Right msg -> 
-      postMessage msg
-
--- Given a direction, find how to execute the player's intent
-getNavAction :: Matrix Tile -> (Direction, V2 Int) -> CharacterList -> Either NavAction String
-getNavAction g (dir, dest) cs = 
-  case tile of
-    Nothing -> Right "Hmm.. You can't find a way to move there."
-    Just tile -> 
-      if tile == Empty
-        then case charOnSpace of
-          Nothing -> Left Move
-          Just (c, _, e) -> 
-            case attitude c of
-              Aggressive -> Left $ Fight e
-              Friendly -> Left $ Swap e c
-              Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
-        else Right "Ouch! You bumped into a wall!"
-  where tile = getTile g dest
-        chk (Character {}, CellRef p, _) = dest == p
-        charOnSpace = find chk cs
 
 -- Turn look mode on to examine entities in the area
 toggleLook :: GameMode -> System' ()
@@ -179,7 +169,5 @@ moveReticule dir =
   cmapM (\(Reticule _, CellRef p@(V2 x y)) -> do
     ls :: [(CellRef, Examine)] <- getAll
     let pos = p + directionToVect dir
-    case lookup (CellRef pos) ls of 
-      Just (Examine msg) -> postMessage msg
-      _ -> pure ()
+    examinePos pos
     pure $ CellRef pos)

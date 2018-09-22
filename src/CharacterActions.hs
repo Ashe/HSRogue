@@ -2,6 +2,7 @@
 
 module CharacterActions
 ( attack
+, examinePos
 ) where
 
 import Apecs
@@ -9,10 +10,13 @@ import SDL.Vect
 import SDL.Font
 
 import System.Random
+import Data.Matrix
 
-import Common
+import Common hiding (Left, Right, Down, Up)
+import qualified Common as C
 import Components
 import Characters
+import ActionStep
 
 -- Make one character attack another
 -- The attacker incurs energy cost no matter what
@@ -56,3 +60,11 @@ getPopupColour h max
   | percent > 0.25 = V4 255 165 0 255
   | otherwise = V4 255 0 0 255
   where percent = fromIntegral h / fromIntegral max
+
+-- Examine whatever is on the tile at position
+examinePos :: V2 Int -> System' ()
+examinePos pos = do
+  ls :: [(CellRef, Examine)] <- getAll
+  case lookup (CellRef pos) ls of 
+    Just (Examine msg) -> postMessage msg
+    _ -> pure ()

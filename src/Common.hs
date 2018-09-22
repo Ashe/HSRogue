@@ -16,6 +16,7 @@ module Common
 , spawnFloatingText
 , floatTooltips
 , directionToVect
+, vectToDirection
 , toCIntRect
 , toCIntV2
 , worldScale
@@ -43,8 +44,8 @@ import Characters
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
 makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''Fonts , ''GameMap
-                  , ''Player, ''Reticule, ''Position, ''CellRef, ''Sprite , ''Character , ''Examine
-                  , ''FloatingText] 
+                  , ''Player, ''PlayerReady, ''PlayerPath, ''Reticule, ''Position, ''CellRef, ''Sprite
+                  , ''Character , ''Examine, ''FloatingText] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -106,6 +107,18 @@ directionToVect Common.Down = V2 0 1
 directionToVect DownLeft = V2 (-1) 1
 directionToVect Common.Left = V2 (-1) 0
 directionToVect UpLeft = V2 (-1) (-1)
+
+-- Conversion from Int V2 to Direction
+vectToDirection :: V2 Int -> Maybe Direction
+vectToDirection (V2 0 (-1)) = Just Common.Up
+vectToDirection (V2 1 (-1)) = Just UpRight
+vectToDirection (V2 1 0) = Just Common.Right
+vectToDirection (V2 1 1) = Just DownRight
+vectToDirection (V2 0 1) = Just Common.Down
+vectToDirection (V2 (-1) 1) = Just DownLeft
+vectToDirection (V2 (-1) 0) = Just Common.Left
+vectToDirection (V2 (-1) (-1)) = Just UpLeft
+vectToDirection _ = Nothing
 
 -- Conversion from Int Rectangle to CInt Rectangle
 toCIntRect :: Rectangle Int -> Rectangle CInt

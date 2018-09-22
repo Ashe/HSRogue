@@ -12,6 +12,8 @@ module Components
 , Tile(..)
 , GameMap(..)
 , Player(..)
+, PlayerReady(..)
+, PlayerPath(..)
 , Reticule(..)
 , Position(..)
 , CellRef(..)
@@ -38,6 +40,12 @@ newtype Time = Time Double deriving Show
 instance Semigroup Time where (<>) = mappend
 instance Monoid Time where mempty = Time 0
 instance Component Time where type Storage Time = Global Time
+
+-- This component acts as a flag for when the player can move
+newtype PlayerReady = PlayerReady Bool deriving Show
+instance Semigroup PlayerReady where (<>) = mappend
+instance Monoid PlayerReady where mempty = PlayerReady True
+instance Component PlayerReady where type Storage PlayerReady = Global PlayerReady
 
 -- Global store of window size
 newtype WindowSize = WindowSize (V2 Int) deriving Show
@@ -76,6 +84,12 @@ newtype GameMap = GameMap (Matrix Tile)
 instance Component GameMap where type Storage GameMap = Global GameMap
 instance Semigroup GameMap where (<>) = mappend
 instance Monoid GameMap where mempty = GameMap $ fromList 0 0 []
+
+-- Global store of player's pathing
+newtype PlayerPath = PlayerPath [V2 Int]
+instance Component PlayerPath where type Storage PlayerPath = Global PlayerPath
+instance Semigroup PlayerPath where (<>) = mappend
+instance Monoid PlayerPath where mempty = PlayerPath []
 
 -- Unique component, either one or none exists
 data Player = Player deriving Show

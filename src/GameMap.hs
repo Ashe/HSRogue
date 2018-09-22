@@ -1,10 +1,12 @@
 module GameMap 
 ( getTile
+, pathfind
 , generateBlankMap
 , generateIdentityMap
 ) where
 
-import SDL hiding (Vector)
+import Apecs
+import SDL hiding (Vector, get)
 import Data.Graph.AStar
 
 import Data.List
@@ -47,8 +49,13 @@ generateIdentityMap (V2 w h) = matrix w h (\(x, y) ->
 -- Pathfind from a point
 pathfind :: Matrix Tile -> V2 Int ->  V2 Int -> Maybe [V2 Int]
 pathfind m start dest = 
-  aStar (findNeighbours m) (\_ _ -> 1) dist ( == dest) start
+  aStar (findNeighbours m) nextDist dist ( == dest) start
     where dist s = calcDistance $ dest - s
+
+-- Calculate distance between neighbours for astar
+nextDist :: V2 Int -> V2 Int -> Int
+nextDist current next = abs x + abs y
+  where (V2 x y) = next - current
 
 -- Calculate distance between two points
 calcDistance :: V2 Int -> Int

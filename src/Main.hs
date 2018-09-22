@@ -69,6 +69,9 @@ triggerEvery dT period phase sys = do
 -- Main step system
 step :: Double -> System' ()
 step dT = do
+  triggerEvery dT 50 0 $ do
+    PlayerReady ready <- get global
+    when ready readyPlayer
   incrTime dT
   floatTooltips dT
   snapEntities
