@@ -53,13 +53,13 @@ pathfind m start dest =
     where dist s = calcDistance $ dest - s
 
 -- Calculate distance between neighbours for astar
-nextDist :: V2 Int -> V2 Int -> Int
-nextDist current next = abs x + abs y
-  where (V2 x y) = next - current
+nextDist :: V2 Int -> V2 Int -> Double
+nextDist current next = if x + y == 2 then 1.5 else fromIntegral $ x + y
+  where (V2 x y) = abs <$> next - current
 
 -- Calculate distance between two points
-calcDistance :: V2 Int -> Int
-calcDistance (V2 i j) = round $ sqrt $ fromIntegral $ (i * i) + (j * j)
+calcDistance :: V2 Int -> Double
+calcDistance (V2 i j) = sqrt $ fromIntegral $ (i * i) + (j * j)
 
 -- Finds a list of valid neighbours
 findNeighbours :: Matrix Tile -> V2 Int -> HashSet (V2 Int)
