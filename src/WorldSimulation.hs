@@ -133,8 +133,9 @@ acquireTargets this ls (char, CellRef pos, e) =
   else do
     Relationships rships <- get global
     let r = visionRange $ combatStats char
-        allDirs = [ CellRef $ pos + V2 i j | i <- [-r .. r], j <- [-r .. r], not (i == 0 && j == 0)]
-        es = filter (\(c, p, _) -> p `elem` allDirs && getReaction rships char c == Hostile ) ls
+        search = [ CellRef $ pos + V2 i j | i <- [-r .. r], j <- [-r .. r]
+                 , (i*i) + (j*j) <= r*r && not (i == 0 && j == 0)]
+        es = filter (\(c, p, _) -> p `elem` search && getReaction rships char c == Hostile ) ls
     if null es then pure Nothing
     else do
       r <- liftIO $ getStdRandom (randomR (0, length es - 1))
