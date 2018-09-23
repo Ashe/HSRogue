@@ -14,6 +14,7 @@ module Components
 , Player(..)
 , PlayerReady(..)
 , PlayerPath(..)
+, Relationships(..)
 , Reticule(..)
 , Position(..)
 , CellRef(..)
@@ -90,6 +91,12 @@ newtype PlayerPath = PlayerPath [V2 Int]
 instance Component PlayerPath where type Storage PlayerPath = Global PlayerPath
 instance Semigroup PlayerPath where (<>) = mappend
 instance Monoid PlayerPath where mempty = PlayerPath []
+
+-- Global store of all relationships in the game
+newtype Relationships = Relationships (HM.HashMap Faction (HM.HashMap Faction Attitude)) deriving Show
+instance Component Relationships where type Storage Relationships = Global Relationships
+instance Semigroup Relationships where (<>) = mappend
+instance Monoid Relationships where mempty = Relationships HM.empty
 
 -- Unique component, either one or none exists
 data Player = Player deriving Show

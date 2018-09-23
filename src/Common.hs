@@ -44,8 +44,8 @@ import Characters
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
 makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''Fonts , ''GameMap
-                  , ''Player, ''PlayerReady, ''PlayerPath, ''Reticule, ''Position, ''CellRef, ''Sprite
-                  , ''Character , ''Examine, ''FloatingText] 
+                  , ''Player, ''PlayerReady, ''PlayerPath, ''Relationships, ''Reticule, ''Position
+                  , ''CellRef, ''Sprite , ''Character , ''Examine, ''FloatingText] 
 
 -- Easy type synonym for systems
 type System' a = System World a

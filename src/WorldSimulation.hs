@@ -99,15 +99,15 @@ regenHealthAndEnergy = cmapM (\(c :: Character, Position p) -> do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap (\(Character n h e _ stats cbStats a _) -> Examine $ 
-    n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
+  cmap (\(Character name h e _ stats cbStats f nature _) -> Examine $ 
+    name ++ ": " ++ f ++ ", " ++ show nature ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
 
 -- Manipulate each character with respect to the map and other chars
 -- This is a BIG function. For now, check attitude and attack the player
 manipulateCharacter :: Matrix Tile -> [Comps] -> Comps ->  System' ()
 manipulateCharacter gm ls (c, CellRef p, e) =
   unless (energy c > 0) $ 
-    case attitude c of
+    case nature c of
       Aggressive ->
         meleeCloseTargets e (map (\(_, cell, ent) -> (cell, ent)) ls) p
       _ -> pure ()
@@ -161,11 +161,11 @@ getNavAction g (dir, dest) cs =
       if tile == Empty
         then case charOnSpace of
           Nothing -> Left Move
-          Just (c, _, e) -> 
-            case attitude c of
-              Aggressive -> Left $ Fight e
-              Friendly -> Left $ Swap e c
-              Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
+          Just (c, _, e) -> Right "TEMPORARILY DISABLED"
+           --case attitude c of
+           --  Aggressive -> Left $ Fight e
+           --  Friendly -> Left $ Swap e c
+           --  Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
         else Right "Ouch! You bumped into a wall!"
   where tile = getTile g dest
         chk (Character {}, CellRef p, _) = dest == p

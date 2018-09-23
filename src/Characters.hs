@@ -2,7 +2,9 @@ module Characters
 ( Character(..)
 , Stats(..)
 , CombatStats(..)
+, Faction
 , Attitude(..)
+, Nature(..)
 , calculateCombatStats
 , initialStats
 , initialCombatStats
@@ -26,7 +28,8 @@ data Character =
     , energy :: Int
     , stats :: Stats
     , combatStats :: CombatStats
-    , attitude :: Attitude
+    , faction :: Faction
+    , nature :: Nature
     , target :: Maybe Entity
     }
 
@@ -53,7 +56,12 @@ data CombatStats =
     } deriving Show
 
 -- For defining relationships with people
-data Attitude = Friendly | Neutral | Aggressive deriving Show
+-- Faction: Who the character aligns with
+-- Attitude: For defining how a faction reacts to another
+-- Nature: How an individual acts (whether they fight or not)
+type Faction = String
+data Attitude = Friendly | Neutral | Hostile deriving Show
+data Nature = Passive | Defensive | Aggressive deriving Show
 
 -- Calculate combat stats based on stats, equipment, skills and auras
 calculateCombatStats :: Stats -> CombatStats
