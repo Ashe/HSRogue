@@ -99,7 +99,7 @@ regenHealthAndEnergy = cmapM (\(c :: Character, Position p) -> do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap (\(Character n h e _ stats cbStats a) -> Examine $ 
+  cmap (\(Character n h e _ stats cbStats a _) -> Examine $ 
     n ++ ": " ++ show a ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
 
 -- Manipulate each character with respect to the map and other chars

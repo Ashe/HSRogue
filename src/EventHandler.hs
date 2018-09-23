@@ -49,6 +49,7 @@ handleMouseEvent (MouseButtonEventData _ bm _ b _ (P p)) =
         Interface -> pure ()
     Released -> pure ()
 
+-- Easy method of getting a tile from mouse input
 convertToTileCoords :: Matrix Tile -> V2 Int -> Maybe (V2 Int)
 convertToTileCoords m (V2 x y) = const p <$> getTile m p
   where p = let (V2 w h) = tileSize in V2 (x `div` w) (y `div` h)

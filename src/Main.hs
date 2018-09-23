@@ -40,17 +40,17 @@ initialise conf t f = void $ do
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "You" 200 0 0 initialStats initialCombatStats Neutral
+    , Character "You" 200 0 0 initialStats initialCombatStats Neutral Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
-    , Character "Chum" 200 0 0 initialStats initialCombatStats Friendly
+    , Character "Chum" 200 0 0 initialStats initialCombatStats Friendly Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
   newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 15)
-    , Character "Tum" 200 0 0 initialStats initialCombatStats Aggressive
+    , Character "Tum" 200 0 0 initialStats initialCombatStats Aggressive (Just $ Entity 0)
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
   readyPlayer
 
@@ -127,6 +127,10 @@ main = do
 
   -- Begin looping
   loop 0 0 0 0
+
+  -- Clean up
+  runSystem releaseData world
+
   SDL.destroyRenderer renderer
   SDL.destroyWindow window
   SDL.Image.quit
@@ -134,3 +138,11 @@ main = do
   SDL.quit
   putStrLn "Goodbye! (◠‿◠✿)"
   exitSuccess
+
+-- Release textures
+releaseData :: System' ()
+releaseData = do
+  Textures t <- get global
+  mapM_ SDL.destroyTexture t
+  Fonts f <- get global
+  mapM_ SDL.Font.free f

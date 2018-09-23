@@ -8,6 +8,8 @@ module Characters
 , initialCombatStats
 ) where
 
+import Apecs (Entity)
+
 -- A character component contains everything a basic character needs
 -- Name: Something to reference in lore
 -- Health: Current health for use in combat and death mechanics
@@ -25,6 +27,7 @@ data Character =
     , stats :: Stats
     , combatStats :: CombatStats
     , attitude :: Attitude
+    , target :: Maybe Entity
     }
 
 -- Generic character stats
