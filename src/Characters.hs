@@ -5,12 +5,15 @@ module Characters
 , Faction
 , Attitude(..)
 , Nature(..)
+, RelationshipTable
+, defaultRelationships
 , calculateCombatStats
 , initialStats
 , initialCombatStats
 ) where
 
 import Apecs (Entity)
+import Data.HashMap.Strict as HM
 
 -- A character component contains everything a basic character needs
 -- Name: Something to reference in lore
@@ -31,7 +34,7 @@ data Character =
     , faction :: Faction
     , nature :: Nature
     , target :: Maybe Entity
-    }
+    } deriving Show
 
 -- Generic character stats
 -- Dictates character abilities and combat stats
@@ -53,6 +56,7 @@ data CombatStats =
     , criticalChance :: Int
     , criticalMult :: Double
     , bonusDamage :: Int
+    , visionRange :: Int
     } deriving Show
 
 -- For defining relationships with people
@@ -60,8 +64,17 @@ data CombatStats =
 -- Attitude: For defining how a faction reacts to another
 -- Nature: How an individual acts (whether they fight or not)
 type Faction = String
-data Attitude = Friendly | Neutral | Hostile deriving Show
-data Nature = Passive | Defensive | Aggressive deriving Show
+data Attitude = Friendly | Neutral | Hostile deriving (Show, Eq)
+data Nature = Passive | Defensive | Aggressive deriving (Show, Eq)
+type RelationshipTable = HM.HashMap Faction (HM.HashMap Faction Attitude)
+
+-- Default relationship table
+defaultRelationships :: RelationshipTable
+defaultRelationships = fromList
+    [ ("Edgelords", fromList
+        [ ("Player", Hostile)
+        ])
+    ]
 
 -- Calculate combat stats based on stats, equipment, skills and auras
 calculateCombatStats :: Stats -> CombatStats
@@ -73,6 +86,7 @@ calculateCombatStats s =
     , criticalChance = agility s
     , criticalMult = 1.5
     , bonusDamage = 0
+    , visionRange = 3
     }
 
 -- Default stats

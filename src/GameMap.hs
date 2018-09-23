@@ -6,7 +6,7 @@ module GameMap
 ) where
 
 import Apecs
-import SDL hiding (Vector, get)
+import SDL hiding (Vector)
 import Data.Graph.AStar
 
 import Data.List

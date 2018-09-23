@@ -36,11 +36,12 @@ initialise conf t f = void $ do
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
   set global $ GameMap $ generateIdentityMap (V2 20 20)
+  set global $ Relationships defaultRelationships
   newEntity
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "You" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
+    , Character "your character" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity
     ( Position (V2 0 0)
@@ -50,7 +51,7 @@ initialise conf t f = void $ do
   newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 15)
-    , Character "Tum" 200 0 0 initialStats initialCombatStats "Edgelords" Aggressive (Just $ Entity 0)
+    , Character "Tum" 200 0 0 initialStats initialCombatStats "Edgelords" Aggressive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
   readyPlayer
 
@@ -71,7 +72,9 @@ step :: Double -> System' ()
 step dT = do
   triggerEvery dT 50 0 $ do
     PlayerReady ready <- get global
-    when ready readyPlayer
+    when ready $ do
+      [(Player, CellRef pos)] <- getAll
+      executePlayerPath pos
   incrTime dT
   floatTooltips dT
   snapEntities

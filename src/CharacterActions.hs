@@ -1,8 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module CharacterActions
-( attack
-, examinePos
+( getReaction
+, attack
+, spendEnergy
+, shareTargetTo
 ) where
 
 import Apecs
@@ -10,7 +12,9 @@ import SDL.Vect
 import SDL.Font
 
 import System.Random
+import Control.Monad(when)
 import Data.Matrix
+import Data.HashMap.Strict as HM
 
 import Common hiding (Left, Right, Down, Up)
 import qualified Common as C
@@ -18,17 +22,33 @@ import Components
 import Characters
 import ActionStep
 
+-- Determines how the target will react against the character
+getReaction :: RelationshipTable -> Character -> Character -> Attitude
+getReaction r char target =
+  if faction char == faction target then Friendly
+  else
+    case HM.lookup (faction char) r of
+      Just t -> 
+        case HM.lookup (faction target) t of
+          Just a -> a
+          _ -> defaultReaction
+      _ -> defaultReaction
+    where defaultReaction
+            | nature char == Aggressive = Hostile
+            | nature char == Passive = Friendly
+            | otherwise = Neutral
+
 -- Make one character attack another
 -- The attacker incurs energy cost no matter what
 attack :: Entity -> Entity -> System' ()
 attack a v = do
   ac :: Character <- get a
   vc :: Character <- get v
-  set a $ ac { energy = 100}
+  spendEnergy a 100
   Position pos <- get v
   damage <- liftIO $ getDamage ac vc
-  let vc' = dealDamage damage vc
-      colour = getPopupColour (health vc') (maxHealth $ combatStats vc')
+  let vc' = dealDamage a damage vc
+      colour = getDMGPopupColour (health vc') (maxHealth $ combatStats vc')
   set v vc'
   spawnFloatingText (show damage) colour pos
   if health vc' > 0 then
@@ -36,6 +56,22 @@ attack a v = do
       name vc' ++ " has " ++ show (health vc') ++ " health left!"
   else
     postMessage $ name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"
+
+-- Shares the target to the other character
+shareTargetTo :: Entity -> Entity -> System' ()
+shareTargetTo e f = do
+  ec :: Character <- get e
+  fc :: Character <- get f
+  let enemy = target ec
+  set f $ fc { target = enemy }
+  spendEnergy e 100
+  case enemy of
+    Just ent -> do
+      alertForPlayer <- exists ent (Proxy :: Proxy Player)
+      when (alertForPlayer && target fc /= enemy) $ do
+        p :: Character <- get ent
+        postMessage $ name ec ++ " just alerted " ++ name fc ++ " of " ++ name p ++ "'s presence!"
+    _ -> pure ()
 
 -- Get the damage to be dealt using the IO monad
 getDamage :: Character -> Character -> IO Int
@@ -46,25 +82,15 @@ getDamage atk def = do
   pure $ max (dam - def) 0
 
 -- Deal simple damage to enemy health
-dealDamage :: Int -> Character -> Character
-dealDamage d c 
+dealDamage :: Entity -> Int -> Character -> Character
+dealDamage attacker d c 
   | d > 0 = c { health = health c - d
-              , regenTimer = max (regenTimer c) (d * 10)}
+              , regenTimer = max (regenTimer c) (d * 10) 
+              , target = Just attacker}
   | otherwise = c
 
--- Get the popup colour based on health left
-getPopupColour :: Int -> Int -> SDL.Font.Color
-getPopupColour h max 
-  | percent > 0.75 = V4 255 255 255 255
-  | percent > 0.5 = V4 255 255 0 255
-  | percent > 0.25 = V4 255 165 0 255
-  | otherwise = V4 255 0 0 255
-  where percent = fromIntegral h / fromIntegral max
-
--- Examine whatever is on the tile at position
-examinePos :: V2 Int -> System' ()
-examinePos pos = do
-  ls :: [(CellRef, Examine)] <- getAll
-  case lookup (CellRef pos) ls of 
-    Just (Examine msg) -> postMessage msg
-    _ -> pure ()
+-- Make a character spend energy
+spendEnergy :: Entity -> Int -> System' ()
+spendEnergy e cost = do
+  c :: Character <- get e
+  set e $ c {energy = cost}

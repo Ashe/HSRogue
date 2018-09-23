@@ -4,7 +4,7 @@ module WorldSimulation
 ( simulateWorld
 , readyPlayer
 , navigatePlayer
-, executePath
+, executePlayerPath
 , playerActionStep
 ) where
 
@@ -12,6 +12,8 @@ import Apecs
 import SDL.Vect
 import qualified SDL
 
+import System.Random
+import Data.Maybe (isJust)
 import Data.Matrix
 import Data.List(find)
 import Control.Monad(when, unless)
@@ -28,35 +30,42 @@ import Draw
 -- Simulate the world, advancing time until the player must act
 simulateWorld :: System' ()
 simulateWorld = do
+  set global $ PlayerReady False
   snapEntities
   simulateCharacters
   regenHealthAndEnergy
   [(Player, c :: Character, e :: Entity)] <- getAll
   if energy c > 0
     then simulateWorld
-    else set global $ PlayerReady True
+    else readyPlayer
 
 -- Get the player ready for their turn
 -- Run systems that only affect the player
 readyPlayer :: System' ()
 readyPlayer = do
-  set global $ PlayerReady False
+  set global $ PlayerReady True
   writeExamines
-  [(Player, CellRef pos)] <- getAll
-  executePath pos
 
-executePath :: V2 Int -> System' ()
-executePath pos = do
+-- Make the player walk to location
+executePlayerPath :: V2 Int -> System' ()
+executePlayerPath pos = do
   PlayerPath path <- get global
   case path of
     [] -> pure ()
     (x : xs) ->
       case vectToDirection (x - pos) of
         Just dir -> do
+          set global $ PlayerReady False
           set global $ PlayerPath xs
           navigatePlayer dir
         Nothing ->
-          set global $ PlayerPath []
+          cancelPlayerPath
+
+-- Cancel the player's pathing
+cancelPlayerPath :: System' ()
+cancelPlayerPath = do
+  set global $ PlayerPath []
+  set global $ PlayerReady True
 
 -- The player has made their move and is ready to simulate
 -- This spends the player's energy
@@ -99,30 +108,83 @@ regenHealthAndEnergy = cmapM (\(c :: Character, Position p) -> do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap (\(Character name h e _ stats cbStats f nature _) -> Examine $ 
+  cmap (\(Character name h e _ stats cbStats f nature t) -> Examine $ 
     name ++ ": " ++ f ++ ", " ++ show nature ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
 
 -- Manipulate each character with respect to the map and other chars
 -- This is a BIG function. For now, check attitude and attack the player
 manipulateCharacter :: Matrix Tile -> [Comps] -> Comps ->  System' ()
-manipulateCharacter gm ls (c, CellRef p, e) =
+manipulateCharacter gm ls comps@(c, CellRef p, e) =
   unless (energy c > 0) $ 
     case nature c of
-      Aggressive ->
-        meleeCloseTargets e (map (\(_, cell, ent) -> (cell, ent)) ls) p
-      _ -> pure ()
+      Passive ->
+        idleCharacter e c
+      Aggressive -> do
+        tar <- acquireTargets e ls comps
+        set e $ c { target = tar }
+        pursueTarget e c tar
+      Defensive ->
+        pursueTarget e c $ target c
 
--- Attack entities in range
-meleeCloseTargets :: Entity -> [(CellRef, Entity)] -> V2 Int -> System' ()
-meleeCloseTargets this ls (V2 x y) = do
-  let allDirs = [CellRef $ V2 (x + i) (y + j) | i <- [-1 .. 1], j <- [-1 .. 1]]
-      es = foldl (\eList dir -> eList ++ 
-        case lookup dir ls of 
-          Just e -> if this == e then [] else [e]
-          _ -> []) [] allDirs
-  unless (null es) $ do
-    this `attack` head es
-    actionStep
+-- Returns the current target or a new target
+acquireTargets :: Entity -> [Comps] -> Comps -> System' (Maybe Entity)
+acquireTargets this ls (char, CellRef pos, e) =
+  if isJust $ target char then pure $ target char
+  else do
+    Relationships rships <- get global
+    let r = visionRange $ combatStats char
+        allDirs = [ CellRef $ pos + V2 i j | i <- [-r .. r], j <- [-r .. r], not (i == 0 && j == 0)]
+        es = filter (\(c, p, _) -> p `elem` allDirs && getReaction rships char c == Hostile ) ls
+    if null es then pure Nothing
+    else do
+      r <- liftIO $ getStdRandom (randomR (0, length es - 1))
+      let (_, _, tar) = es !! r
+      pure $ Just tar
+
+-- Follow and attack the current target, if there is one
+pursueTarget :: Entity -> Character -> Maybe Entity -> System' ()
+pursueTarget e c target =
+  let idle = idleCharacter e c in
+  case target of
+    Just t -> do
+      GameMap m <- get global
+      CellRef pos <- get e
+      CellRef end <- get t
+      let path = pathfind m pos end
+      case path of
+        Just paths ->
+          let dir = vectToDirection $ head paths - pos in
+          case dir of
+            Just d ->
+              navigateNPC e pos c d
+            _ -> idle
+        _ -> idle
+    _ -> idle
+
+-- Make an npc move in a direction
+navigateNPC :: Entity -> V2 Int -> Character -> Direction -> System' ()
+navigateNPC e pos c dir = do
+  ls :: CharacterList <- getAll
+  let dest = pos + directionToVect dir
+      entOnSpace = find (\(_, CellRef p, _) -> p == dest) ls
+  case entOnSpace of
+    Just (target, p, ent) -> do
+      Relationships rships <- get global
+      case getReaction rships c target of
+        Hostile -> e `attack` ent
+        Friendly -> e `shareTargetTo` ent
+        _ -> 
+          case nature c of
+            Aggressive -> e `attack` ent
+            _ -> spendEnergy e 100
+    _ -> do
+      set e $ CellRef dest
+      spendEnergy e 100
+  actionStep
+
+-- Make a character wait
+idleCharacter :: Entity -> Character -> System' ()
+idleCharacter e c = spendEnergy e 100
 
 -- Move, swap, or fight in a given direction, standard navigation
 navigatePlayer :: Direction -> System' ()
@@ -131,7 +193,7 @@ navigatePlayer dir = do
   [(Player, CellRef pos, pChar :: Character, p)] <- getAll
   chars :: CharacterList <- getAll
   let dest = pos + directionToVect dir
-      action = getNavAction m (dir, dest) chars
+  action <- getNavAction m pChar (dir, dest) chars
   case action of
     Left na ->
       case na of
@@ -146,27 +208,29 @@ navigatePlayer dir = do
         Fight e -> do
           p `attack` e
           playerActionStep 0
-    Right msg -> 
+    Right msg -> do
+      cancelPlayerPath
       postMessage msg
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity Character | Fight Entity
 
 -- Given a direction, find how to execute the player's intent
-getNavAction :: Matrix Tile -> (Direction, V2 Int) -> CharacterList -> Either NavAction String
-getNavAction g (dir, dest) cs = 
+getNavAction :: Matrix Tile -> Character -> (Direction, V2 Int) -> CharacterList -> System' (Either NavAction String)
+getNavAction g p (dir, dest) cs =
   case tile of
-    Nothing -> Right "Hmm.. You can't find a way to move there."
+    Nothing -> pure $ Right "Hmm.. You can't find a way to move there."
     Just tile -> 
       if tile == Empty
         then case charOnSpace of
-          Nothing -> Left Move
-          Just (c, _, e) -> Right "TEMPORARILY DISABLED"
-           --case attitude c of
-           --  Aggressive -> Left $ Fight e
-           --  Friendly -> Left $ Swap e c
-           --  Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
-        else Right "Ouch! You bumped into a wall!"
+          Nothing -> pure $ Left Move
+          Just (c, _, e) -> do
+            Relationships r <- get global
+            pure $ case getReaction r c p of
+              Hostile -> Left $ Fight e
+              Friendly -> Left $ Swap e c
+              Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
+        else pure $ Right "Ouch! You bumped into a wall!"
   where tile = getTile g dest
         chk (Character {}, CellRef p, _) = dest == p
         charOnSpace = find chk cs

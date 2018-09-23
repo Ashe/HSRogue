@@ -78,19 +78,21 @@ ingameMouseAction m b p = do
 -- Attempt to move the player to specified location
 pathfindPlayer :: Matrix Tile  -> V2 Int -> System' ()
 pathfindPlayer m dest = do
+  PlayerReady r <- get global
   [(Player, CellRef p)] <- getAll
   case pathfind m p dest of
     Just path -> do
       set global $ PlayerPath path
-      executePath p
+      when r $ executePlayerPath p
     _ -> pure ()
 
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()
 handleKeyEvent ev = do
   (state :: GameState) <- get global
+  PlayerReady r <- get global
   let code = keysymKeycode $ keyboardEventKeysym ev
-  case keyboardEventKeyMotion ev of
+  when r $ case keyboardEventKeyMotion ev of
     Pressed ->
       case state of
         Game mode -> gameAction mode code

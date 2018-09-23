@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Common
 ( World(..)
@@ -15,6 +16,8 @@ module Common
 , snapEntities
 , spawnFloatingText
 , floatTooltips
+, getDMGPopupColour
+, examinePos
 , directionToVect
 , vectToDirection
 , toCIntRect
@@ -24,6 +27,7 @@ module Common
 , playerCellRef
 , tileSize
 , tileSize'
+, standardRange
 ) where
 
 import Apecs
@@ -97,6 +101,23 @@ floatTooltips dt =
        else Nothing
   )
 
+-- Get the popup colour based on health left
+getDMGPopupColour :: Int -> Int -> SDL.Font.Color
+getDMGPopupColour h max 
+  | percent > 0.75 = V4 255 255 255 255
+  | percent > 0.5 = V4 255 255 0 255
+  | percent > 0.25 = V4 255 165 0 255
+  | otherwise = V4 255 0 0 255
+  where percent = fromIntegral h / fromIntegral max
+
+-- Examine whatever is on the tile at position
+examinePos :: V2 Int -> System' ()
+examinePos pos = do
+  ls :: [(CellRef, Examine)] <- getAll
+  case Prelude.lookup (CellRef pos) ls of 
+    Just (Examine msg) -> postMessage msg
+    _ -> pure ()
+
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
 directionToVect Common.Up = V2 0 (-1)
@@ -141,4 +162,7 @@ tileSize :: V2 Int
 tileSize = V2 32 32
 tileSize' :: V2 CInt
 tileSize' = V2 32 32
+
+standardRange :: Int
+standardRange = 2
 
