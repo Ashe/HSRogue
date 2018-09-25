@@ -70,6 +70,7 @@ ingameMouseAction m b p = do
     ButtonRight -> 
       case tile of
         Just tp -> do
+          when (m == Standard) $ toggleLook m
           examinePos tp
           cmap (\(Reticule _, CellRef _) -> CellRef tp)
         Nothing -> pure ()
@@ -137,7 +138,10 @@ gameAction mode k =
       Standard -> 
         case intents of
           Just (Navigate dir) -> navigatePlayer dir
-          Just ToggleLook -> toggleLook mode
+          Just ToggleLook -> do
+            toggleLook mode
+            [(Player, Examine msg)] <- getAll
+            postMessage msg
           Just Wait -> do
             postMessage "You wait.."
             playerActionStep 100
@@ -160,11 +164,6 @@ toggleLook m = do
   if not $ null ls
     then set (snd $ head ls) r
     else void $ newEntity r
-  es :: [(CellRef, Examine)] <- getAll
-  unless isLook $ 
-    case lookup (CellRef p) es of 
-      Just (Examine msg) -> postMessage msg
-      _ -> pure ()
 
 -- Move the reticule for looking or aiming purposes
 moveReticule :: Direction -> System' ()
