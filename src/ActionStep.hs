@@ -26,8 +26,8 @@ actionStep = do
 -- We don't want characters targetting dead people
 killDeadCharacters :: System' ()
 killDeadCharacters = do
-  ls :: [(Character, Entity)] <- getAll
-  mapM_ (\(c, e) -> when (health c <= 0) $ 
+  ls :: [(Character, Not Player, Entity)] <- getAll
+  mapM_ (\(c, _, e) -> when (health c <= 0) $ 
     destroy e (Proxy :: Proxy AllComps)) ls
 
 -- Updates combat stats for each character
