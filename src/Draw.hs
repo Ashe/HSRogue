@@ -89,7 +89,8 @@ displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' (IO ())
 displayFps r fps Nothing = pure $ pure ()
 displayFps r fps (Just f) = do
   (tex, size) <- liftIO $ genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
-  pure $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
+  SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
+  pure $ SDL.destroyTexture tex
 
 -- Render floating text
 renderFloatingTex :: SDL.Renderer -> FloatingTex -> Position -> IO ()
