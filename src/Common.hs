@@ -112,7 +112,7 @@ floatTooltips dt =
     if y > (-50) 
        then pure $ Just $ Position (V2 x (y - (dt * 0.1)))
        else do
-         SDL.destroyTexture tex
+         liftIO $ SDL.destroyTexture tex
          pure Nothing
   )
 

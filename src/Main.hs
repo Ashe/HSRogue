@@ -146,6 +146,6 @@ main = do
 releaseData :: System' ()
 releaseData = do
   Textures t <- get global
-  mapM_ SDL.destroyTexture t
+  mapM_ (liftIO . SDL.destroyTexture) t
   Fonts f <- get global
-  mapM_ SDL.Font.free f
+  mapM_ (liftIO . SDL.Font.free) f
