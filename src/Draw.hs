@@ -29,44 +29,46 @@ import Characters
 
 
 -- Create System' (IO ()) for everything depending on item drawn
-draw :: SDL.Renderer -> FPS -> System' ()
+draw :: SDL.Renderer -> FPS -> System' (IO ())
 draw r fps = do
   Textures texs <- get global
   Fonts fonts <- get global
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
-  renderWorld r
-  drawComponents $ renderSprite r texs
-  drawComponents $ renderReticule r
-  drawComponents $ renderFloatingTex r
-  displayFps r fps uiFont
-  printMessages
+  sequence_ <$> sequence
+    [ renderWorld r
+    , drawComponents $ renderSprite r texs
+    , drawComponents $ renderReticule r
+    , drawComponents $ renderFloatingTex r
+    , displayFps r fps uiFont
+    , printMessages
+    ]
 
 -- Produce a system used for drawing
-drawComponents :: Get World c => (c -> Position -> System' ()) -> System' ()
-drawComponents f = cmapM_ (\(p, comp) -> f comp p)
+drawComponents :: Get World c => (c -> Position -> IO ()) -> System' (IO ())
+drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
 
 -- Render the game world simplistically
-renderWorld :: SDL.Renderer -> System' ()
+renderWorld :: SDL.Renderer -> System' (IO ())
 renderWorld r = do
   GameMap m <- get global
   rendererDrawColor r $= V4 255 255 255 255
-  liftIO $ ifoldl (foldm m) (pure ()) $ getMatrixAsVector m
+  pure $ ifoldl (foldm m) (pure ()) $ getMatrixAsVector m
     where foldm m io i t = let c = ncols m; y = i `div` c; x = i `mod` c; in
             io <> renderTileMessy r (V2 x y) t
 
 -- Render textures
-renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> System' ()
+renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
 renderSprite r ts (Sprite fp rect) (Position p) = 
   case HM.lookup fp ts of
     Just tex -> 
-      liftIO $ SDL.copyEx r tex (Just $ fromIntegral <$> rect) (Just (SDL.Rectangle (P $ round <$> p) tileSize')) 0 Nothing (V2 False False)
+      SDL.copyEx r tex (Just $ fromIntegral <$> rect) (Just (SDL.Rectangle (P $ round <$> p) tileSize')) 0 Nothing (V2 False False)
     _ -> pure ()
 
 -- Render the target reticule
-renderReticule :: SDL.Renderer -> Reticule -> Position -> System' ()
+renderReticule :: SDL.Renderer -> Reticule -> Position -> IO ()
 renderReticule r (Reticule on) (Position p) = when on $ do
   rendererDrawColor r $= V4 255 255 255 20
-  liftIO $ fillRect r $ Just $ Rectangle (P $ round <$> p) tileSize'
+  fillRect r $ Just $ Rectangle (P $ round <$> p) tileSize'
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
@@ -83,13 +85,13 @@ renderTileMessy r (V2 x y) t =
       _ -> pure ()
 
 -- Display FPS
-displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' ()
-displayFps r fps Nothing = pure ()
+displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' (IO ())
+displayFps r fps Nothing = pure $ pure ()
 displayFps r fps (Just f) = do
-  (tex, size) <- genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
-  liftIO $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
+  (tex, size) <- liftIO $ genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
+  pure $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
 
 -- Render floating text
-renderFloatingTex :: SDL.Renderer -> FloatingTex -> Position -> System' ()
+renderFloatingTex :: SDL.Renderer -> FloatingTex -> Position -> IO ()
 renderFloatingTex r (FloatingTex tex size) (Position pos) = 
-  liftIO $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P pos) size)
+ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P pos) size)

@@ -73,10 +73,10 @@ postMessage [] = pure ()
 postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Print messages into console
-printMessages :: System' ()
+printMessages :: System' (IO ())
 printMessages = do
   Messages msgs <- get global
-  liftIO $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
+  pure $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
 
 -- Flush any messages
 clearMessages :: System' ()
@@ -99,7 +99,7 @@ spawnFloatingText s c (V2 x y) = do
       let font = HM.lookup "Assets/Roboto-Regular.ttf" fonts in
         case font of
           Just f -> do
-            (tex, size) <- genSolidText r f c s
+            (tex, size) <- liftIO $ genSolidText r f c s
             void $ newEntity (FloatingTex tex size, Position (V2 (x + ht) y))
           _ -> pure ()
     _ -> pure ()
@@ -154,12 +154,12 @@ generateText r fo fu c t = do
  --SDL.destroyTexture texture
 
 -- Render solid text
-genSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> System' (SDL.Texture, V2 Double)
-genSolidText r fo c s = liftIO $ generateText r fo (SDL.Font.solid fo) c s
+genSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+genSolidText r fo = generateText r fo (SDL.Font.solid fo)
 
 -- Render blended text
-genBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> System' (SDL.Texture, V2 Double)
-genBlendedText r fo c s = liftIO $ generateText r fo (SDL.Font.blended fo) c s
+genBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+genBlendedText r fo = generateText r fo (SDL.Font.blended fo)
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int

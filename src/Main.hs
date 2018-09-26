@@ -123,7 +123,7 @@ main = do
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
 
-        runSystem (draw renderer newFps) world
+        join $ runSystem (draw renderer newFps) world
         runSystem clearMessages world
 
         SDL.present renderer
