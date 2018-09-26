@@ -6,6 +6,7 @@ module Components
 , WindowSize(..)
 , Messages(..)
 , GameState(..)
+, Renderer(..)
 , Textures(..)
 , Fonts(..)
 , GameMode(..)
@@ -20,11 +21,12 @@ module Components
 , CellRef(..)
 , Examine(..)
 , Sprite(..)
-, FloatingText(..)
+, FloatingTex(..)
 ) where
 
 import Apecs
-import SDL hiding (Vector)
+import SDL hiding (Vector, Renderer)
+import qualified SDL
 import qualified SDL.Font
 import qualified Data.HashMap.Strict as HM
 import Data.Matrix
@@ -33,7 +35,7 @@ import Resources
 import Characters
 
 -- Easy type for all non-global, non-player components
-type AllComps = (Position, CellRef, Sprite, Character, FloatingText)
+type AllComps = (Position, CellRef, Sprite, Character, FloatingTex)
 
 -- Global component, exists outside of entities
 -- Used for managing the passage of time
@@ -59,6 +61,12 @@ newtype Messages = Messages [String] deriving Show
 instance Semigroup Messages where (<>) = mappend
 instance Monoid Messages where mempty = Messages []
 instance Component Messages where type Storage Messages = Global Messages
+
+-- Global store of renderer
+newtype Renderer = Renderer (Maybe SDL.Renderer)
+instance Component Renderer where type Storage Renderer = Global Renderer
+instance Semigroup Renderer where (<>) = mappend
+instance Monoid Renderer where mempty = Renderer Nothing
 
 -- Global store of all textures
 newtype Textures = Textures TextureMap
@@ -126,5 +134,5 @@ newtype Examine = Examine String deriving Show
 instance Component Examine where type Storage Examine = Map Examine
 
 -- Floating tooltips for combat etc
-data FloatingText = FloatingText String SDL.Font.Color deriving Show
-instance Component FloatingText where type Storage FloatingText = Map FloatingText
+data FloatingTex = FloatingTex SDL.Texture (V2 Double)
+instance Component FloatingTex where type Storage FloatingTex = Map FloatingTex

@@ -29,10 +29,11 @@ import Characters
 
 -- Initialises the world with it's first system:
 -- this system simply creates an entity
-initialise :: SDL.WindowConfig -> [TexResource] -> [FontResource] -> System' ()
-initialise conf t f = void $ do
+initialise :: SDL.WindowConfig -> SDL.Renderer -> [TexResource] -> [FontResource] -> System' ()
+initialise conf r t f = void $ do
   let ws = fromIntegral <$> SDL.windowInitialSize conf
   set global $ WindowSize ws
+  set global $ Renderer $ Just r
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
   set global $ GameMap $ generateIdentityMap (V2 20 20)
@@ -101,7 +102,7 @@ main = do
   -- Load resources and initialise game
   texs <- loadTextures renderer ["Assets/sprites.png"]
   fonts <- loadFonts [("Assets/Roboto-Regular.ttf", 12)]
-  runSystem (initialise windowConfig texs fonts) world
+  runSystem (initialise windowConfig renderer texs fonts) world
 
   -- Display the game
   SDL.showWindow window
@@ -122,7 +123,7 @@ main = do
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
 
-        join $ runSystem (draw renderer newFps) world
+        runSystem (draw renderer newFps) world
         runSystem clearMessages world
 
         SDL.present renderer

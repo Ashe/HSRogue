@@ -5,8 +5,6 @@ module Draw
 , renderWorld
 , renderSprite
 , renderReticule
-, renderSolidText
-, renderBlendedText
 , displayFps
 ) where
 
@@ -29,52 +27,46 @@ import Resources
 import GameMap
 import Characters
 
--- Type synonym for fonts
-type FontFunction = SDL.Font.Color -> Data.Text.Text -> IO SDL.Surface
 
 -- Create System' (IO ()) for everything depending on item drawn
-draw :: SDL.Renderer -> FPS -> System' (IO ())
+draw :: SDL.Renderer -> FPS -> System' ()
 draw r fps = do
   Textures texs <- get global
   Fonts fonts <- get global
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
-  sequence_ <$> sequence 
-    [ renderWorld r
-    , drawComponents $ renderSprite r texs
-    , drawComponents $ renderReticule r
-    , drawComponents $ renderFloatingText r uiFont
-    , displayFps r fps uiFont
-    , printMessages
-    ]
+  renderWorld r
+  drawComponents $ renderSprite r texs
+  drawComponents $ renderReticule r
+  drawComponents $ renderFloatingTex r
+  displayFps r fps uiFont
+  printMessages
 
 -- Produce a system used for drawing
-drawComponents :: Get World c => (c -> Position -> IO ()) -> System' (IO ())
-drawComponents f = cfold (\img (p, comp) -> img <> f comp p) mempty
+drawComponents :: Get World c => (c -> Position -> System' ()) -> System' ()
+drawComponents f = cmapM_ (\(p, comp) -> f comp p)
 
 -- Render the game world simplistically
-renderWorld :: SDL.Renderer -> System' (IO ())
+renderWorld :: SDL.Renderer -> System' ()
 renderWorld r = do
   GameMap m <- get global
   rendererDrawColor r $= V4 255 255 255 255
-  pure $ ifoldl (foldm m) (pure ()) $ getMatrixAsVector m
+  liftIO $ ifoldl (foldm m) (pure ()) $ getMatrixAsVector m
     where foldm m io i t = let c = ncols m; y = i `div` c; x = i `mod` c; in
             io <> renderTileMessy r (V2 x y) t
 
 -- Render textures
-renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
+renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> System' ()
 renderSprite r ts (Sprite fp rect) (Position p) = 
   case HM.lookup fp ts of
     Just tex -> 
-      SDL.copyEx r tex (Just $ toCIntRect rect) (Just (SDL.Rectangle (P $ toCIntV2 p) tileSize')) 0 Nothing (V2 False False)
+      liftIO $ SDL.copyEx r tex (Just $ fromIntegral <$> rect) (Just (SDL.Rectangle (P $ round <$> p) tileSize')) 0 Nothing (V2 False False)
     _ -> pure ()
 
 -- Render the target reticule
-renderReticule :: SDL.Renderer -> Reticule -> Position -> IO ()
-renderReticule r (Reticule on) (Position p)
-  | not on = pure ()
-  | on = do
-    rendererDrawColor r $= V4 255 255 255 20
-    fillRect r $ Just $ Rectangle (P $ toCIntV2 p) tileSize'
+renderReticule :: SDL.Renderer -> Reticule -> Position -> System' ()
+renderReticule r (Reticule on) (Position p) = when on $ do
+  rendererDrawColor r $= V4 255 255 255 20
+  liftIO $ fillRect r $ Just $ Rectangle (P $ round <$> p) tileSize'
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
@@ -89,39 +81,15 @@ renderTileMessy r (V2 x y) t =
         drawLine r (P $ V2 tx ty) (P $ V2 (tx + tw) (ty + th))
         drawLine r (P $ V2 (tx + tw) ty) (P $ V2 tx (ty + th))
       _ -> pure ()
-        
--- Render text to the screen easily
-renderText :: SDL.Renderer -> SDL.Font.Font -> FontFunction -> SDL.Font.Color -> String -> V2 CInt -> Bool -> IO ()
-renderText r fo fu c t (V2 x y) center = do
-  let text = Data.Text.pack t
-  surface <- fu c text
-  texture <- SDL.createTextureFromSurface r surface
-  SDL.freeSurface surface
-  fontSize <- SDL.Font.size fo text
-  let (w, h) = (fromIntegral *** fromIntegral) fontSize
-  if center then
-    let x' = x - fromIntegral (fst fontSize `div` 2) in
-    SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x' y) (V2 w h)))
-  else
-    SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x y) (V2 w h)))
-  SDL.destroyTexture texture
-
--- Render solid text
-renderSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> V2 Double -> Bool -> IO ()
-renderSolidText r fo c s p = renderText r fo (SDL.Font.solid fo) c s (toCIntV2 p)
-
--- Render blended text
-renderBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> V2 Double -> Bool -> IO ()
-renderBlendedText r fo c s p = renderText r fo (SDL.Font.blended fo) c s (toCIntV2 p)
 
 -- Display FPS
-displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' (IO ())
-displayFps r fps Nothing = pure $ pure ()
-displayFps r fps (Just f) = 
-  pure $ renderSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps) (V2 0 0) False
+displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' ()
+displayFps r fps Nothing = pure ()
+displayFps r fps (Just f) = do
+  (tex, size) <- genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
+  liftIO $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
 
 -- Render floating text
-renderFloatingText :: SDL.Renderer -> Maybe SDL.Font.Font -> FloatingText -> Position -> IO ()
-renderFloatingText _ Nothing _ _ = pure ()
-renderFloatingText r (Just f) (FloatingText txt col) (Position pos) = 
-  renderSolidText r f col txt pos True
+renderFloatingTex :: SDL.Renderer -> FloatingTex -> Position -> System' ()
+renderFloatingTex r (FloatingTex tex size) (Position pos) = 
+  liftIO $ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P pos) size)

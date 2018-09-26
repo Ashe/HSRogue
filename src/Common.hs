@@ -18,10 +18,11 @@ module Common
 , floatTooltips
 , getDMGPopupColour
 , examinePos
+, genSolidText
+, genBlendedText
+
 , directionToVect
 , vectToDirection
-, toCIntRect
-, toCIntV2
 , worldScale
 , playerPos
 , playerCellRef
@@ -31,7 +32,8 @@ module Common
 ) where
 
 import Apecs
-import SDL hiding (get, Vector)
+import SDL hiding (get, Vector, Renderer)
+import qualified SDL
 import SDL.Font
 import Foreign.C
 import Data.HashMap.Strict as HM
@@ -47,9 +49,9 @@ import Characters
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
-makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''Fonts , ''GameMap
-                  , ''Player, ''PlayerReady, ''PlayerPath, ''Relationships, ''Reticule, ''Position
-                  , ''CellRef, ''Sprite , ''Character , ''Examine, ''FloatingText] 
+makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''Renderer,''Fonts
+                  , ''GameMap , ''Player, ''PlayerReady, ''PlayerPath, ''Relationships, ''Reticule
+                  , ''Position , ''CellRef, ''Sprite , ''Character , ''Examine, ''FloatingTex] 
 
 -- Easy type synonym for systems
 type System' a = System World a
@@ -71,10 +73,10 @@ postMessage [] = pure ()
 postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Print messages into console
-printMessages :: System' (IO ())
+printMessages :: System' ()
 printMessages = do
   Messages msgs <- get global
-  pure $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
+  liftIO $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
 
 -- Flush any messages
 clearMessages :: System' ()
@@ -89,16 +91,29 @@ snapEntities =
 
 -- Spawn a floating tooltip
 spawnFloatingText :: String -> SDL.Font.Color -> V2 Double -> System' ()
-spawnFloatingText s c (V2 x y) = void $ newEntity (FloatingText s c, Position (V2 (x + ht) y))
+spawnFloatingText s c (V2 x y) = do
+  Fonts fonts <- get global
+  Renderer renderer <- get global
+  case renderer of
+    Just r ->
+      let font = HM.lookup "Assets/Roboto-Regular.ttf" fonts in
+        case font of
+          Just f -> do
+            (tex, size) <- genSolidText r f c s
+            void $ newEntity (FloatingTex tex size, Position (V2 (x + ht) y))
+          _ -> pure ()
+    _ -> pure ()
   where ht = let (V2 t _) = tileSize in fromIntegral t * 0.5
 
 -- Make floating text float up
 floatTooltips :: Double -> System' ()
 floatTooltips dt = 
-  cmap (\(FloatingText _ _, Position (V2 x y)) -> 
+  cmapM (\(FloatingTex tex _, Position (V2 x y)) -> 
     if y > (-50) 
-       then Just $ Position (V2 x (y - (dt * 0.1)))
-       else Nothing
+       then pure $ Just $ Position (V2 x (y - (dt * 0.1)))
+       else do
+         SDL.destroyTexture tex
+         pure Nothing
   )
 
 -- Get the popup colour based on health left
@@ -117,6 +132,34 @@ examinePos pos = do
   case Prelude.lookup (CellRef pos) ls of 
     Just (Examine msg) -> postMessage msg
     _ -> pure ()
+
+-- Type synonym for fonts
+type FontFunction = SDL.Font.Color -> Data.Text.Text -> IO SDL.Surface
+
+-- Render text to the screen easily
+generateText :: SDL.Renderer -> SDL.Font.Font -> FontFunction -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+generateText r fo fu c t = do
+  let text = Data.Text.pack t
+  surface <- fu c text
+  texture <- SDL.createTextureFromSurface r surface
+  SDL.freeSurface surface
+  (w, h) <- SDL.Font.size fo text
+  pure (texture, fromIntegral <$> V2 w h)
+ --let (w, h) = (fromIntegral *** fromIntegral) fontSize
+ --if center then
+ --  let x' = x - fromIntegral (fst fontSize `div` 2) in
+ --  SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x' y) (V2 w h)))
+ --else
+ --  SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x y) (V2 w h)))
+ --SDL.destroyTexture texture
+
+-- Render solid text
+genSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> System' (SDL.Texture, V2 Double)
+genSolidText r fo c s = liftIO $ generateText r fo (SDL.Font.solid fo) c s
+
+-- Render blended text
+genBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> System' (SDL.Texture, V2 Double)
+genBlendedText r fo c s = liftIO $ generateText r fo (SDL.Font.blended fo) c s
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
@@ -140,14 +183,6 @@ vectToDirection (V2 (-1) 1) = Just DownLeft
 vectToDirection (V2 (-1) 0) = Just Common.Left
 vectToDirection (V2 (-1) (-1)) = Just UpLeft
 vectToDirection _ = Nothing
-
--- Conversion from Int Rectangle to CInt Rectangle
-toCIntRect :: Rectangle Int -> Rectangle CInt
-toCIntRect r = fromIntegral <$> r
-
--- Conversion from Int Vector to CInt Vector
-toCIntV2 :: V2 Double -> V2 CInt
-toCIntV2 = fmap round
 
 worldScale :: Double
 worldScale = 32
