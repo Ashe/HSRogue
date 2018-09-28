@@ -52,8 +52,7 @@ attack a v = do
   set v vc'
   spawnFloatingText (show damage) colour pos
   if health vc' > 0 then
-    postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage! " ++
-      name vc' ++ " has " ++ show (health vc') ++ " health left!"
+    postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"
   else
     postMessage $ name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"
 

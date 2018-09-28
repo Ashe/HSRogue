@@ -11,7 +11,6 @@ module Common
 , Direction(..)
 , CharacterList
 , postMessage
-, printMessages
 , clearMessages
 , snapEntities
 , spawnFloatingText
@@ -37,7 +36,6 @@ import Foreign.C
 import Data.HashMap.Strict as HM
 import Data.Text(Text, pack)
 import Control.Monad(void)
-import Control.Arrow((***))
 
 import Data.Vector (ifoldl)
 
@@ -68,17 +66,13 @@ type CharacterList = [(Character, CellRef, Entity)]
 -- Post a new message
 postMessage :: String -> System' ()
 postMessage [] = pure ()
-postMessage m = modify global (\(Messages msgs) -> Messages $ m : msgs)
-
--- Print messages into console
-printMessages :: System' (IO ())
-printMessages = do
-  Messages msgs <- get global
-  pure $ foldl (\io m ->io <> putStrLn m) mempty $ reverse msgs
+postMessage m = do
+  liftIO $ putStrLn m
+  modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Flush any messages
 clearMessages :: System' ()
-clearMessages = modify global (\(Messages _) -> Messages [])
+clearMessages = modify global (\(Messages msgs) -> Messages $ take 45 msgs)
 
 -- Converts cell references to game position
 snapEntities :: System' ()
@@ -96,10 +90,11 @@ spawnFloatingText s c (V2 x y) = do
         case font of
           Just f -> do
             (tex, size) <- liftIO $ genSolidText r f c s
-            void $ newEntity (FloatingTex tex size, Position (V2 (x + ht) y))
+            let ht = let (V2 t _) = tileSize in fromIntegral t * 0.5
+                center = let V2 w _ = size in x + ht - (w / 2)
+            void $ newEntity (FloatingTex tex size, Position (V2 center y))
           _ -> pure ()
     _ -> pure ()
-  where ht = let (V2 t _) = tileSize in fromIntegral t * 0.5
 
 -- Make floating text float up
 floatTooltips :: Double -> System' ()
@@ -180,7 +175,7 @@ playerCellRef :: V2 Int
 playerCellRef = V2 0 0
 
 tileSize :: Num a => V2 a
-tileSize = V2 32 32
+tileSize = V2 16 16
 
 standardRange :: Int
 standardRange = 2

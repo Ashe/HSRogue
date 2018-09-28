@@ -36,13 +36,13 @@ initialise conf r t f = void $ do
   set global $ Renderer $ Just r
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
-  set global $ GameMap $ generateBlankMap (V2 40 32) Solid
+  set global $ GameMap $ generateIdentityMap (V2 40 32)
   set global $ Relationships defaultRelationships
   newEntity
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "your character" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
+    , Character "Ashe" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
   newEntity
     ( Position (V2 0 0)
@@ -109,6 +109,12 @@ main = do
   fonts <- loadFonts [("Assets/Roboto-Regular.ttf", 12)]
   runSystem (initialise windowConfig renderer texs fonts) world
 
+  -- Set up logical world size
+  let ws = let V2 tsw tsh = tileSize in V2 (40 * tsw) (32 * tsh)
+      additional = let V2 wsw wsh = ws in fromIntegral (round (wsh / 9)) * 16 - wsw
+      worldsize = round <$> (ws + V2 additional 0)
+  SDL.rendererLogicalSize renderer $= Just (fromIntegral <$> worldsize)
+
   -- Display the game
   SDL.showWindow window
 
@@ -125,10 +131,11 @@ main = do
         runSystem (handlePayload payload) world
         runSystem (step $ fromIntegral dt) world
 
+        SDL.rendererRenderTarget renderer $= Nothing
         SDL.rendererDrawColor renderer $= V4 0 0 0 0
         SDL.clear renderer
 
-        join $ runSystem (draw renderer newFps) world
+        runSystem (draw renderer newFps worldsize) world
         runSystem clearMessages world
 
         SDL.present renderer
