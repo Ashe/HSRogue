@@ -39,11 +39,11 @@ mapMatrix m func = Data.Matrix.fromList (nrows m) (ncols m) vec
 
 -- Easy function for a blank map
 generateBlankMap :: V2 Int -> Tile -> Matrix Tile
-generateBlankMap (V2 w h) t = matrix w h (const t)
+generateBlankMap (V2 w h) t = matrix h w (const t)
 
 -- Identity map
 generateIdentityMap :: V2 Int -> Matrix Tile
-generateIdentityMap (V2 w h) = matrix w h (\(x, y) ->
+generateIdentityMap (V2 w h) = matrix h w (\(x, y) ->
   if x == y then Solid else Empty)
 
 -- Pathfind from a point

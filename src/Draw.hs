@@ -61,21 +61,21 @@ renderSprite :: SDL.Renderer -> TextureMap -> Sprite -> Position -> IO ()
 renderSprite r ts (Sprite fp rect) (Position p) = 
   case HM.lookup fp ts of
     Just tex -> 
-      SDL.copyEx r tex (Just $ fromIntegral <$> rect) (Just (SDL.Rectangle (P $ round <$> p) tileSize')) 0 Nothing (V2 False False)
+      SDL.copyEx r tex (Just $ fromIntegral <$> rect) (Just (SDL.Rectangle (P $ round <$> p) tileSize)) 0 Nothing (V2 False False)
     _ -> pure ()
 
 -- Render the target reticule
 renderReticule :: SDL.Renderer -> Reticule -> Position -> IO ()
 renderReticule r (Reticule on) (Position p) = when on $ do
   rendererDrawColor r $= V4 255 255 255 20
-  fillRect r $ Just $ Rectangle (P $ round <$> p) tileSize'
+  fillRect r $ Just $ Rectangle (P $ round <$> p) tileSize
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
 renderTileMessy r (V2 x y) t =
   let f = fromIntegral
       ti = realToFrac
-      (V2 w h) = tileSize'
+      (V2 w h) = tileSize
       (V2 tw th) = V2 (f $ round $ ti w * 0.5) (f $ round $ ti h * 0.5)
       (V2 tx ty) = V2 (f x * w + f (round $ ti w * 0.25)) (f y * h + f (round $ ti h * 0.25)) in
     case t of

@@ -23,11 +23,9 @@ module Common
 
 , directionToVect
 , vectToDirection
-, worldScale
 , playerPos
 , playerCellRef
 , tileSize
-, tileSize'
 , standardRange
 ) where
 
@@ -84,10 +82,8 @@ clearMessages = modify global (\(Messages _) -> Messages [])
 
 -- Converts cell references to game position
 snapEntities :: System' ()
-snapEntities = 
-  cmap $ \(Position (V2 _ _), CellRef (V2 x y)) ->
-    Position (V2 (calc x) (calc y))
-      where calc n = worldScale * fromIntegral n
+snapEntities = cmap (\(Position (V2 _ _), CellRef p) ->
+  Position $ fromIntegral <$> p * tileSize)
 
 -- Spawn a floating tooltip
 spawnFloatingText :: String -> SDL.Font.Color -> V2 Double -> System' ()
@@ -145,13 +141,6 @@ generateText r fo fu c t = do
   SDL.freeSurface surface
   (w, h) <- SDL.Font.size fo text
   pure (texture, fromIntegral <$> V2 w h)
- --let (w, h) = (fromIntegral *** fromIntegral) fontSize
- --if center then
- --  let x' = x - fromIntegral (fst fontSize `div` 2) in
- --  SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x' y) (V2 w h)))
- --else
- --  SDL.copy r texture Nothing (Just (Rectangle (P $ V2 x y) (V2 w h)))
- --SDL.destroyTexture texture
 
 -- Render solid text
 genSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
@@ -184,19 +173,14 @@ vectToDirection (V2 (-1) 0) = Just Common.Left
 vectToDirection (V2 (-1) (-1)) = Just UpLeft
 vectToDirection _ = Nothing
 
-worldScale :: Double
-worldScale = 32
-
 playerPos :: V2 Double
 playerPos = V2 0 0
 
 playerCellRef :: V2 Int
 playerCellRef = V2 0 0
 
-tileSize :: V2 Int
+tileSize :: Num a => V2 a
 tileSize = V2 32 32
-tileSize' :: V2 CInt
-tileSize' = V2 32 32
 
 standardRange :: Int
 standardRange = 2

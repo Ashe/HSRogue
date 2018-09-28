@@ -36,7 +36,7 @@ initialise conf r t f = void $ do
   set global $ Renderer $ Just r
   set global $ Textures $ createResourceMap t
   set global $ Fonts $ createResourceMap f
-  set global $ GameMap $ generateIdentityMap (V2 20 20)
+  set global $ GameMap $ generateBlankMap (V2 40 32) Solid
   set global $ Relationships defaultRelationships
   newEntity
     ( Player
@@ -90,7 +90,12 @@ main = do
   SDL.Font.initialize
 
   -- Create a window and renderer
-  let windowConfig = SDL.defaultWindow
+  let windowConfig = 
+        SDL.defaultWindow
+          { SDL.windowInitialSize = V2 1920 1080
+          , SDL.windowMode = SDL.Windowed
+          , SDL.windowHighDPI = True
+          }
   window <- SDL.createWindow "App" windowConfig
   renderer <-
       SDL.createRenderer window (-1)
