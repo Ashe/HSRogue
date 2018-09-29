@@ -97,7 +97,7 @@ handleKeyEvent ev = do
     Pressed ->
       case state of
         Game mode -> gameAction mode code
-        Interface -> postMessage "Interface state not implemented yet"
+        Interface -> postMessage $ Message ["Interface state not implemented yet"]
     Released -> pure ()
 
 -- Use GameState to determine the context of input
@@ -141,9 +141,9 @@ gameAction mode k =
           Just ToggleLook -> do
             toggleLook mode
             [(Player, Examine msg)] <- getAll
-            postMessage msg
+            postMessage $ Message [msg]
           Just Wait -> do
-            postMessage "You wait.."
+            postMessage $ Message ["You wait.."]
             playerActionStep 100
           _ -> pure ()
       Look -> 

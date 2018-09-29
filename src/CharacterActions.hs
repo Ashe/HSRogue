@@ -38,6 +38,17 @@ getReaction r char target =
             | nature char == Passive = Friendly
             | otherwise = Neutral
 
+-- Get the name colour based on relationship with player
+getNameColor :: Entity -> System' SDL.Font.Color
+getNameColor char = do
+  Relationships r <- get global
+  [(Player, pchar :: Character)] <- getAll
+  c :: Character <- get char
+  pure $ case getReaction r c pchar of
+    Friendly -> V4 0 255 0 255
+    Hostile -> V4 255 0 0 255
+    _ -> V4 150 150 150 255
+
 -- Make one character attack another
 -- The attacker incurs energy cost no matter what
 attack :: Entity -> Entity -> System' ()
@@ -51,10 +62,9 @@ attack a v = do
       colour = getDMGPopupColour (health vc') (maxHealth $ combatStats vc')
   set v vc'
   spawnFloatingText (show damage) colour pos
-  if health vc' > 0 then
-    postMessage $ name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"
-  else
-    postMessage $ name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"
+  postMessage $ Message $ if health vc' > 0 
+  then [name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"]
+  else [name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"]
 
 -- Shares the target to the other character
 shareTargetTo :: Entity -> Entity -> System' ()
@@ -69,7 +79,7 @@ shareTargetTo e f = do
       alertForPlayer <- exists ent (Proxy :: Proxy Player)
       when (alertForPlayer && target fc /= enemy) $ do
         p :: Character <- get ent
-        postMessage $ name ec ++ " just alerted " ++ name fc ++ " of " ++ name p ++ "'s presence!"
+        postMessage $ Message [name ec ++ " just alerted " ++ name fc ++ " of " ++ name p ++ "'s presence!"]
     _ -> pure ()
 
 -- Get the damage to be dealt using the IO monad

@@ -1,9 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Components
 ( AllComps
 , Time(..)
 , WindowSize(..)
+, MsgBit(..)
+, Message(..)
 , Messages(..)
 , GameState(..)
 , Renderer(..)
@@ -56,8 +60,13 @@ instance Semigroup WindowSize where (<>) = mappend
 instance Monoid WindowSize where mempty = WindowSize (V2 0 0)
 instance Component WindowSize where type Storage WindowSize = Global WindowSize
 
--- Global component used for debugging and reporting
-newtype Messages = Messages [String] deriving Show
+-- Global component used for reporting events
+class MsgBit msg where render :: msg -> (String, SDL.Font.Color)
+instance MsgBit String where render msg = (msg, V4 255 255 255 255)
+instance MsgBit (String, SDL.Font.Color) where render msg = msg
+data Message = forall m. MsgBit m => Message [m]
+
+newtype Messages = Messages [Message]
 instance Semigroup Messages where (<>) = mappend
 instance Monoid Messages where mempty = Messages []
 instance Component Messages where type Storage Messages = Global Messages

@@ -19,6 +19,8 @@ module Common
 , examinePos
 , genSolidText
 , genBlendedText
+, getTextFromMessage
+, genMessage
 
 , directionToVect
 , vectToDirection
@@ -64,10 +66,9 @@ data Direction =
 type CharacterList = [(Character, CellRef, Entity)]
 
 -- Post a new message
-postMessage :: String -> System' ()
-postMessage [] = pure ()
-postMessage m = do
-  liftIO $ putStrLn m
+postMessage :: Message -> System' ()
+postMessage m@(Message bits) = do
+  liftIO $ putStrLn $ getTextFromMessage bits
   modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Flush any messages
@@ -116,12 +117,13 @@ getDMGPopupColour h max
   | otherwise = V4 255 0 0 255
   where percent = fromIntegral h / fromIntegral max
 
+
 -- Examine whatever is on the tile at position
 examinePos :: V2 Int -> System' ()
 examinePos pos = do
   ls :: [(CellRef, Examine)] <- getAll
   case Prelude.lookup (CellRef pos) ls of 
-    Just (Examine msg) -> postMessage msg
+    Just (Examine msg) -> postMessage $ Message [msg]
     _ -> pure ()
 
 -- Type synonym for fonts
@@ -144,6 +146,22 @@ genSolidText r fo = generateText r fo (SDL.Font.solid fo)
 -- Render blended text
 genBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
 genBlendedText r fo = generateText r fo (SDL.Font.blended fo)
+
+-- Easy way of getting text from a message
+getTextFromMessage :: MsgBit m => [m] -> String
+getTextFromMessage = foldl (\t n -> let (txt,_) = render n in t ++ txt) ""
+
+-- Generate a message to display
+genMessage :: SDL.Renderer -> SDL.Font.Font -> Message -> IO (SDL.Texture, V2 Double)
+genMessage r f (Message m) = do
+  let plainText = getTextFromMessage m
+  (width, height) <- SDL.Font.size f $ Data.Text.pack plainText
+  let size = fromIntegral <$> V2 width height
+  pixelformat <- SDL.masksToPixelFormat 16 (V4 0 0 0 0)
+  surface <- SDL.createRGBSurface size pixelformat
+  tex <- SDL.createTextureFromSurface r surface
+  SDL.freeSurface surface
+  pure (tex, fromIntegral <$> size)
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int

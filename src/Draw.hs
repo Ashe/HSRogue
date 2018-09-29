@@ -111,6 +111,6 @@ displayMessages r (SDL.Rectangle (P anchor) (V2 w h)) (Just f) = do
   Messages messages <- get global
   let msgs = zip messages [0..]
   mapM_ (\(msg, index) -> do
-    (tex, size) <- liftIO $ genSolidText r f (V4 255 255 255 255) msg
+    (tex, size) <- liftIO $ genMessage r f msg
     liftIO $ SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> size))
     liftIO $ SDL.destroyTexture tex) msgs

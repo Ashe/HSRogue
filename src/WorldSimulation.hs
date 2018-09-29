@@ -204,14 +204,14 @@ navigatePlayer dir = do
         Swap e c -> do
           set e $ CellRef pos
           set p $ CellRef dest
-          postMessage $ "You switch places with " ++ name c ++ "!"
+          postMessage $ Message ["You switch places with " ++ name c ++ "!"]
           playerActionStep 100
         Fight e -> do
           p `attack` e
           playerActionStep 0
     Right msg -> do
       cancelPlayerPath
-      postMessage msg
+      postMessage $ Message [msg]
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity Character | Fight Entity
