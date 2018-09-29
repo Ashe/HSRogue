@@ -9,11 +9,10 @@ import SDL hiding (get, Vector)
 import SDL.Font
 
 import Foreign.C
-import Control.Monad.IO.Class(MonadIO)
 import Data.HashMap.Strict as HM
 import Data.Text(Text, pack)
 import Control.Monad(unless, when, void)
-import Control.Arrow((***))
+import Control.Monad.IO.Class(MonadIO)
 
 import Data.Matrix
 import Data.Vector(ifoldl)

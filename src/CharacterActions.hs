@@ -2,6 +2,7 @@
 
 module CharacterActions
 ( getReaction
+, getNameColor
 , attack
 , spendEnergy
 , shareTargetTo
@@ -39,12 +40,11 @@ getReaction r char target =
             | otherwise = Neutral
 
 -- Get the name colour based on relationship with player
-getNameColor :: Entity -> System' SDL.Font.Color
+getNameColor :: Character -> System' SDL.Font.Color
 getNameColor char = do
   Relationships r <- get global
   [(Player, pchar :: Character)] <- getAll
-  c :: Character <- get char
-  pure $ case getReaction r c pchar of
+  pure $ case getReaction r char pchar of
     Friendly -> V4 0 255 0 255
     Hostile -> V4 255 0 0 255
     _ -> V4 150 150 150 255
@@ -59,12 +59,14 @@ attack a v = do
   Position pos <- get v
   damage <- liftIO $ getDamage ac vc
   let vc' = dealDamage a damage vc
-      colour = getDMGPopupColour (health vc') (maxHealth $ combatStats vc')
+      colour = getHealthColour (health vc') (maxHealth $ combatStats vc')
   set v vc'
   spawnFloatingText (show damage) colour pos
-  postMessage $ Message $ if health vc' > 0 
-  then [name ac ++ " attacks " ++ name vc' ++ " for " ++ show damage ++ " damage!"]
-  else [name ac ++ " kills " ++ name vc' ++ " with " ++ show (negate $ health vc') ++ " overkill damage!"]
+  aCol <- getNameColor ac
+  vCol <- getNameColor vc
+  postMessage $ if health vc' > 0 
+  then [MBit (name ac, aCol), MBit " attacks ", MBit (name vc', vCol), MBit " for ", MBit (show damage, V4 255 0 0 0 :: SDL.Font.Color), MBit " damage!"]
+  else [MBit (name ac, aCol), MBit " kills ", MBit (name vc', vCol) , MBit " with ", MBit (show (negate $ health vc'), V4 255 0 0 0 :: SDL.Font.Color), MBit " overkill damage!"]
 
 -- Shares the target to the other character
 shareTargetTo :: Entity -> Entity -> System' ()
@@ -79,7 +81,10 @@ shareTargetTo e f = do
       alertForPlayer <- exists ent (Proxy :: Proxy Player)
       when (alertForPlayer && target fc /= enemy) $ do
         p :: Character <- get ent
-        postMessage $ Message [name ec ++ " just alerted " ++ name fc ++ " of " ++ name p ++ "'s presence!"]
+        ecCol <- getNameColor ec
+        fcCol <- getNameColor fc
+        pCol <- getNameColor p
+        postMessage [MBit (name ec, ecCol), MBit " just alerted ", MBit (name fc, fcCol), MBit " of ", MBit (name p, pCol), MBit "'s presence!"]
     _ -> pure ()
 
 -- Get the damage to be dealt using the IO monad

@@ -108,8 +108,11 @@ regenHealthAndEnergy = cmapM (\(c :: Character, Position p) -> do
 -- Place important information into examine messages
 writeExamines :: System' ()
 writeExamines = 
-  cmap (\(Character name h e _ stats cbStats f nature t) -> Examine $ 
-    name ++ ": " ++ f ++ ", " ++ show nature ++ ", Health: " ++ show h ++ "/" ++ show (maxHealth cbStats))
+  cmapM (\(c@(Character name h e _ stats cbStats f nature t)) -> do
+    charCol <- getNameColor c
+    let healthCol = getHealthColour h (maxHealth cbStats)
+    pure $ Examine 
+      [MBit (name, charCol), MBit ": ", MBit (f, charCol), MBit $ ", " ++ show nature ++ ", ", MBit ("Health: " ++ show h ++ "/" ++ show (maxHealth cbStats), healthCol)])
 
 -- Manipulate each character with respect to the map and other chars
 -- This is a BIG function. For now, check attitude and attack the player
@@ -204,34 +207,36 @@ navigatePlayer dir = do
         Swap e c -> do
           set e $ CellRef pos
           set p $ CellRef dest
-          postMessage $ Message ["You switch places with " ++ name c ++ "!"]
+          cCol <- getNameColor c
+          postMessage [MBit "You switch places with ", MBit (name c, cCol), MBit "!"]
           playerActionStep 100
         Fight e -> do
           p `attack` e
           playerActionStep 0
     Right msg -> do
       cancelPlayerPath
-      postMessage $ Message [msg]
+      postMessage msg
 
 -- Things that can come from navigation
 data NavAction = Move | Swap Entity Character | Fight Entity
 
 -- Given a direction, find how to execute the player's intent
-getNavAction :: Matrix Tile -> Character -> (Direction, V2 Int) -> CharacterList -> System' (Either NavAction String)
+getNavAction :: Matrix Tile -> Character -> (Direction, V2 Int) -> CharacterList -> System' (Either NavAction [MBit])
 getNavAction g p (dir, dest) cs =
   case tile of
-    Nothing -> pure $ Right "Hmm.. You can't find a way to move there."
+    Nothing -> pure $ Right [MBit "Hmm.. You can't find a way to move there."]
     Just tile -> 
       if tile == Empty
         then case charOnSpace of
           Nothing -> pure $ Left Move
           Just (c, _, e) -> do
+            cCol <- getNameColor c
             Relationships r <- get global
             pure $ case getReaction r c p of
               Hostile -> Left $ Fight e
               Friendly -> Left $ Swap e c
-              Neutral -> Right $ "Oof! You bumped into " ++ name c ++ "!"
-        else pure $ Right "Ouch! You bumped into a wall!"
+              Neutral -> Right [MBit "Oof! You bumped into ",  MBit (name c, cCol), MBit "!"]
+        else pure $ Right [MBit "Ouch! You bumped into a wall!"]
   where tile = getTile g dest
         chk (Character {}, CellRef p, _) = dest == p
         charOnSpace = find chk cs

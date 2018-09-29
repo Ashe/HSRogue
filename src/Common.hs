@@ -15,7 +15,7 @@ module Common
 , snapEntities
 , spawnFloatingText
 , floatTooltips
-, getDMGPopupColour
+, getHealthColour
 , examinePos
 , genSolidText
 , genBlendedText
@@ -37,7 +37,8 @@ import SDL.Font
 import Foreign.C
 import Data.HashMap.Strict as HM
 import Data.Text(Text, pack)
-import Control.Monad(void)
+import Control.Monad(void, foldM_)
+import Control.Monad.IO.Class (MonadIO)
 
 import Data.Vector (ifoldl)
 
@@ -66,9 +67,9 @@ data Direction =
 type CharacterList = [(Character, CellRef, Entity)]
 
 -- Post a new message
-postMessage :: Message -> System' ()
-postMessage m@(Message bits) = do
-  liftIO $ putStrLn $ getTextFromMessage bits
+postMessage :: [MBit] -> System' ()
+postMessage m = do
+  liftIO $ putStrLn $ getTextFromMessage m
   modify global (\(Messages msgs) -> Messages $ m : msgs)
 
 -- Flush any messages
@@ -90,7 +91,7 @@ spawnFloatingText s c (V2 x y) = do
       let font = HM.lookup "Assets/Roboto-Regular.ttf" fonts in
         case font of
           Just f -> do
-            (tex, size) <- liftIO $ genSolidText r f c s
+            (tex, size) <- genSolidText r f c s
             let ht = let (V2 t _) = tileSize in fromIntegral t * 0.5
                 center = let V2 w _ = size in x + ht - (w / 2)
             void $ newEntity (FloatingTex tex size, Position (V2 center y))
@@ -104,13 +105,13 @@ floatTooltips dt =
     if y > (-50) 
        then pure $ Just $ Position (V2 x (y - (dt * 0.1)))
        else do
-         liftIO $ SDL.destroyTexture tex
+         SDL.destroyTexture tex
          pure Nothing
   )
 
 -- Get the popup colour based on health left
-getDMGPopupColour :: Int -> Int -> SDL.Font.Color
-getDMGPopupColour h max 
+getHealthColour :: Int -> Int -> SDL.Font.Color
+getHealthColour h max 
   | percent > 0.75 = V4 255 255 255 255
   | percent > 0.5 = V4 255 255 0 255
   | percent > 0.25 = V4 255 165 0 255
@@ -123,14 +124,13 @@ examinePos :: V2 Int -> System' ()
 examinePos pos = do
   ls :: [(CellRef, Examine)] <- getAll
   case Prelude.lookup (CellRef pos) ls of 
-    Just (Examine msg) -> postMessage $ Message [msg]
+    Just (Examine msg) -> postMessage msg
     _ -> pure ()
 
--- Type synonym for fonts
-type FontFunction = SDL.Font.Color -> Data.Text.Text -> IO SDL.Surface
-
 -- Render text to the screen easily
-generateText :: SDL.Renderer -> SDL.Font.Font -> FontFunction -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+generateText :: MonadIO m => SDL.Renderer -> SDL.Font.Font 
+             -> (SDL.Font.Color -> Data.Text.Text -> m SDL.Surface)
+             -> SDL.Font.Color -> String -> m (SDL.Texture, V2 Double)
 generateText r fo fu c t = do
   let text = Data.Text.pack t
   surface <- fu c text
@@ -140,25 +140,36 @@ generateText r fo fu c t = do
   pure (texture, fromIntegral <$> V2 w h)
 
 -- Render solid text
-genSolidText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+genSolidText :: MonadIO m => SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> m (SDL.Texture, V2 Double)
 genSolidText r fo = generateText r fo (SDL.Font.solid fo)
 
 -- Render blended text
-genBlendedText :: SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> IO (SDL.Texture, V2 Double)
+genBlendedText :: MonadIO m => SDL.Renderer -> SDL.Font.Font -> SDL.Font.Color -> String -> m (SDL.Texture, V2 Double)
 genBlendedText r fo = generateText r fo (SDL.Font.blended fo)
 
 -- Easy way of getting text from a message
-getTextFromMessage :: MsgBit m => [m] -> String
-getTextFromMessage = foldl (\t n -> let (txt,_) = render n in t ++ txt) ""
+getTextFromMessage :: [MBit] -> String
+getTextFromMessage = foldl (\t (MBit n) -> let (txt,_) = render n in t ++ txt) ""
 
 -- Generate a message to display
-genMessage :: SDL.Renderer -> SDL.Font.Font -> Message -> IO (SDL.Texture, V2 Double)
-genMessage r f (Message m) = do
+genMessage :: SDL.Renderer -> SDL.Font.Font -> [MBit] -> IO (SDL.Texture, V2 Double)
+genMessage r f m = do
   let plainText = getTextFromMessage m
   (width, height) <- SDL.Font.size f $ Data.Text.pack plainText
   let size = fromIntegral <$> V2 width height
   pixelformat <- SDL.masksToPixelFormat 16 (V4 0 0 0 0)
   surface <- SDL.createRGBSurface size pixelformat
+
+  foldM_ (\p (MBit next) -> do
+    let (txt, col) = render next
+        text = Data.Text.pack txt
+    (bitw, _) <- SDL.Font.size f text
+    txtSurface <- SDL.Font.solid f col text
+    SDL.surfaceBlit txtSurface Nothing surface (Just $ P (V2 p 0))
+    SDL.freeSurface txtSurface
+    pure $ p + fromIntegral bitw
+    ) 0 m
+
   tex <- SDL.createTextureFromSurface r surface
   SDL.freeSurface surface
   pure (tex, fromIntegral <$> size)

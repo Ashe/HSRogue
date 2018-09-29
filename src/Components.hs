@@ -6,8 +6,8 @@ module Components
 ( AllComps
 , Time(..)
 , WindowSize(..)
-, MsgBit(..)
-, Message(..)
+, MessageBit(..)
+, MBit(..)
 , Messages(..)
 , GameState(..)
 , Renderer(..)
@@ -61,12 +61,12 @@ instance Monoid WindowSize where mempty = WindowSize (V2 0 0)
 instance Component WindowSize where type Storage WindowSize = Global WindowSize
 
 -- Global component used for reporting events
-class MsgBit msg where render :: msg -> (String, SDL.Font.Color)
-instance MsgBit String where render msg = (msg, V4 255 255 255 255)
-instance MsgBit (String, SDL.Font.Color) where render msg = msg
-data Message = forall m. MsgBit m => Message [m]
+class MessageBit msg where render :: msg -> (String, SDL.Font.Color)
+instance MessageBit String where render msg = (msg, V4 255 255 255 255)
+instance MessageBit (String, SDL.Font.Color) where render msg = msg
+data MBit = forall m. MessageBit m => MBit m 
 
-newtype Messages = Messages [Message]
+newtype Messages = Messages [[MBit]]
 instance Semigroup Messages where (<>) = mappend
 instance Monoid Messages where mempty = Messages []
 instance Component Messages where type Storage Messages = Global Messages
@@ -139,7 +139,7 @@ instance Component Sprite where type Storage Sprite = Map Sprite
 instance Component Character where type Storage Character = Map Character
 
 -- Descriptions of entities when looking
-newtype Examine = Examine String deriving Show
+newtype Examine = Examine [MBit]
 instance Component Examine where type Storage Examine = Map Examine
 
 -- Floating tooltips for combat etc
