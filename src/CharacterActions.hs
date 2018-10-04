@@ -45,8 +45,8 @@ getNameColor char = do
   Relationships r <- get global
   [(Player, pchar :: Character)] <- getAll
   pure $ case getReaction r char pchar of
-    Friendly -> V4 0 255 0 255
-    Hostile -> V4 255 0 0 255
+    Friendly -> V4 100 255 100 255
+    Hostile -> V4 255 50 50 255
     _ -> V4 150 150 150 255
 
 -- Make one character attack another
@@ -65,8 +65,8 @@ attack a v = do
   aCol <- getNameColor ac
   vCol <- getNameColor vc
   postMessage $ if health vc' > 0 
-  then [MBit (name ac, aCol), MBit " attacks ", MBit (name vc', vCol), MBit " for ", MBit (show damage, V4 255 0 0 0 :: SDL.Font.Color), MBit " damage!"]
-  else [MBit (name ac, aCol), MBit " kills ", MBit (name vc', vCol) , MBit " with ", MBit (show (negate $ health vc'), V4 255 0 0 0 :: SDL.Font.Color), MBit " overkill damage!"]
+  then [MBit (name ac, aCol), MBit " attacks ", MBit (name vc', vCol), MBit " for ", MBit (show damage, V4 255 50 50 255 :: SDL.Font.Color), MBit " damage!"]
+  else [MBit (name ac, aCol), MBit " kills ", MBit (name vc', vCol) , MBit " with ", MBit (show (negate $ health vc'), V4 255 50 50 255 :: SDL.Font.Color), MBit " overkill damage!"]
 
 -- Shares the target to the other character
 shareTargetTo :: Entity -> Entity -> System' ()

@@ -11,7 +11,7 @@ import Data.Graph.AStar
 
 import Data.List
 import Data.HashSet (HashSet, fromList)
-import Data.Matrix hiding (getElem)
+import Data.Matrix
 import Data.Vector(imap, ifoldl, toList)
 import Debug.Trace (traceShow)
 
@@ -20,9 +20,7 @@ import Components
 
 -- Matrix accessor with V2 support
 getTile :: Matrix Tile -> V2 Int -> Maybe Tile
-getElem :: Matrix a -> V2 Int -> Maybe a
-getTile = getElem
-getElem m (V2 x y) = safeGet (x+1) (y+1) m
+getTile = getItem
 
 -- Iterate through the matrix via folding
 foldMatrix :: Matrix a -> (b -> V2 Int -> a -> b) -> b -> b

@@ -1,12 +1,10 @@
-{-# OPTIONS_GHC -Wall #-}
-
 module Resources
 ( createResourceMap
 , loadTextures
 , loadFonts
 ) where
 
-import SDL(Renderer, Texture)
+import SDL(Renderer)
 import SDL.Image(loadTexture)
 import SDL.Font
 import Data.HashMap.Strict

@@ -5,6 +5,7 @@
 module Types
 ( State(..)
 , GameMode(..)
+, InterfaceMode(..)
 , MessageBit(..)
 , MBit(..)
 , FPS
@@ -22,8 +23,13 @@ import qualified SDL.Font
 import Data.HashMap.Strict
 
 -- Data for managing flow of the game
+data State = Game GameMode | Interface InterfaceMode deriving (Show, Eq)
+
+-- Manage the game
 data GameMode = Standard | Look deriving (Show, Eq)
-data State = Game GameMode | Interface deriving (Show, Eq)
+
+-- Manage menus
+data InterfaceMode = PauseScreen deriving (Show, Eq)
 
 -- Class for managing text within the game
 class MessageBit msg where render :: msg -> (String, SDL.Font.Color)

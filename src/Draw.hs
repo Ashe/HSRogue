@@ -53,7 +53,11 @@ drawGameUI r fonts bounds@(SDL.Rectangle (P p@(V2 x y)) d@(V2 w h)) = do
 drawGameOverlay :: SDL.Renderer -> FontMap -> FPS -> V2 CInt -> System' ()
 drawGameOverlay r fonts fps ws = do
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
-  drawPrompt r ws (V2 650 300)
+  GameState state <- get global
+  case state of
+    Interface PauseScreen ->
+      drawPrompt r ws (V2 650 300)
+    _ -> pure ()
   displayFps r fps uiFont
 
 -- Produce a system used for drawing
@@ -85,22 +89,20 @@ renderReticule r (Reticule on) (Position p) = when on $ do
 
 -- Render a tile based on it's type using lines
 renderTileMessy :: SDL.Renderer -> V2 Int -> Tile -> IO ()
-renderTileMessy r (V2 x y) t =
+renderTileMessy r (V2 x y) Solid = do
   let f = fromIntegral
       ti = realToFrac
       (V2 w h) = tileSize
       (V2 tw th) = V2 (f $ round $ ti w * 0.5) (f $ round $ ti h * 0.5)
-      (V2 tx ty) = V2 (f x * w + f (round $ ti w * 0.25)) (f y * h + f (round $ ti h * 0.25)) in
-    case t of
-      Solid -> do
-        drawLine r (P $ V2 tx ty) (P $ V2 (tx + tw) (ty + th))
-        drawLine r (P $ V2 (tx + tw) ty) (P $ V2 tx (ty + th))
-      _ -> pure ()
+      (V2 tx ty) = V2 (f x * w + f (round $ ti w * 0.25)) (f y * h + f (round $ ti h * 0.25))
+  drawLine r (P $ V2 tx ty) (P $ V2 (tx + tw) (ty + th))
+  drawLine r (P $ V2 (tx + tw) ty) (P $ V2 tx (ty + th))
+renderTileMessy r _ _ = pure ()
 
 -- Display FPS
 displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' ()
 displayFps r fps Nothing = pure ()
-displayFps r fps (Just f) = liftIO $ do
+displayFps r fps (Just f) = do
   (tex, size) <- genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
   SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
   SDL.destroyTexture tex
@@ -118,8 +120,8 @@ displayMessages r (SDL.Rectangle (P anchor) (V2 w h)) (Just f) = do
   let msgs = zip messages [0..]
   mapM_ (\(msg, index) -> do
     (tex, size) <- liftIO $ genMessage r f msg
-    liftIO $ SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> size))
-    liftIO $ SDL.destroyTexture tex) msgs
+    SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> size))
+    SDL.destroyTexture tex) msgs
 
 -- Draw prompt in the centre of the screen of the selected size
 drawPrompt :: SDL.Renderer -> V2 CInt -> V2 CInt -> System' ()

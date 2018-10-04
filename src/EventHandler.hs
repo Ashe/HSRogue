@@ -22,6 +22,9 @@ import CharacterActions
 import WorldSimulation
 import ActionStep
 
+import HandleGameEvents
+import HandleInterfaceEvents
+
 -- Handle the entire event payload
 handlePayload :: [EventPayload] -> System' ()
 handlePayload = mapM_ handleEvent 
@@ -44,48 +47,11 @@ handleMouseEvent (MouseButtonEventData _ bm _ b _ (P p)) =
   case bm of
     Pressed -> do
       GameState state <- get global
+      let mousepos = fromIntegral <$> p
       case state of 
-        Game m -> ingameMouseAction m b (fromIntegral <$> p)
-        Interface -> pure ()
+        Game m -> gameActionWithMouse m b mousepos
+        Interface mode -> interfaceActionWithMouse mode b mousepos
     Released -> pure ()
-
--- Easy method of getting a tile from mouse input
-convertToTileCoords :: Matrix Tile -> V2 Int -> Maybe (V2 Int)
-convertToTileCoords m (V2 x y) = const p <$> getTile m p
-  where p = let (V2 w h) = tileSize in V2 (x `div` w) (y `div` h)
-
--- Do something in game in response to the mouse
-ingameMouseAction :: GameMode -> MouseButton -> V2 Int -> System' ()
-ingameMouseAction m b p = do
-  GameMap mp <- get global
-  let tile = convertToTileCoords mp p
-  case b of
-    ButtonLeft -> 
-      case m of
-        Standard -> 
-          case tile of
-            Just tp -> pathfindPlayer mp tp
-            _ -> pure ()
-        Look -> toggleLook m
-    ButtonRight -> 
-      case tile of
-        Just tp -> do
-          when (m == Standard) $ toggleLook m
-          examinePos tp
-          cmap (\(Reticule _, CellRef _) -> CellRef tp)
-        Nothing -> pure ()
-    _ -> pure ()
-
--- Attempt to move the player to specified location
-pathfindPlayer :: Matrix Tile  -> V2 Int -> System' ()
-pathfindPlayer m dest = do
-  PlayerReady r <- get global
-  [(Player, CellRef p)] <- getAll
-  case pathfind m p dest of
-    Just path -> do
-      set global $ PlayerPath path
-      when r $ executePlayerPath p
-    _ -> pure ()
 
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()
@@ -97,7 +63,7 @@ handleKeyEvent ev = do
     Pressed ->
       case state of
         Game mode -> gameAction mode code
-        Interface -> postMessage [MBit "Interface state not implemented yet"]
+        Interface mode -> interfaceAction mode code
     Released -> pure ()
 
 -- Use GameState to determine the context of input
@@ -107,69 +73,3 @@ data GameIntent
   | ToggleLook
   | Wait
   deriving (Read, Show, Eq)
-
--- Initial bindings for intents
-defaultGameIntents :: [(Keycode, GameIntent)]
-defaultGameIntents = 
-  -- Navigation
-  [ (KeycodeUp , Navigate T.Up)
-  , (KeycodeK, Navigate T.Up)
-  , (KeycodeY, Navigate T.UpLeft)
-  , (KeycodeLeft , Navigate T.Left)
-  , (KeycodeH, Navigate T.Left)
-  , (KeycodeB, Navigate T.DownLeft)
-  , (KeycodeDown , Navigate T.Down)
-  , (KeycodeJ, Navigate T.Down)
-  , (KeycodeN, Navigate T.DownRight)
-  , (KeycodeRight , Navigate T.Right)
-  , (KeycodeL, Navigate T.Right)
-  , (KeycodeU, Navigate T.UpRight)
-
-  -- Other functions
-  , (KeycodeSemicolon, ToggleLook)
-  , (KeycodeW, Wait)
-  ]
-
--- For keyboard events that  take place in the game
-gameAction :: GameMode -> Keycode -> System' ()
-gameAction mode k = 
-  let intents = lookup k defaultGameIntents in
-    case mode of
-      Standard -> 
-        case intents of
-          Just (Navigate dir) -> navigatePlayer dir
-          Just ToggleLook -> do
-            toggleLook mode
-            [(Player, Examine msg)] <- getAll
-            postMessage msg
-          Just Wait -> do
-            postMessage [MBit "You wait.."]
-            playerActionStep 100
-          _ -> pure ()
-      Look -> 
-        case intents of
-          Just (Navigate dir) -> moveReticule dir
-          Just ToggleLook -> toggleLook mode
-          _ -> pure ()
-
--- Turn look mode on to examine entities in the area
-toggleLook :: GameMode -> System' ()
-toggleLook m = do
-  let isLook = m == Look
-  modify global (\(a :: GameState) -> 
-    GameState $ if isLook then Game Standard else Game Look)
-  ls :: [(Reticule, Entity)] <- getAll
-  [(Player, CellRef p)] <- getAll 
-  let r = (Reticule $ not isLook, Position (V2 0 0), CellRef p)
-  if not $ null ls
-    then set (snd $ head ls) r
-    else void $ newEntity r
-
--- Move the reticule for looking or aiming purposes
-moveReticule :: Direction -> System' ()
-moveReticule dir = 
-  cmapM (\(Reticule _, CellRef p@(V2 x y)) -> do
-    ls :: [(CellRef, Examine)] <- getAll
-    let pos = p + directionToVect dir
-    examinePos pos
-    pure $ CellRef pos)

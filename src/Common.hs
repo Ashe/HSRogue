@@ -19,6 +19,8 @@ module Common
 , genBlendedText
 , getTextFromMessage
 , genMessage
+, getItem
+, convertToTileCoords
 
 , directionToVect
 , vectToDirection
@@ -38,6 +40,7 @@ import Data.Text(Text, pack)
 import Control.Monad(void, foldM_)
 import Control.Monad.IO.Class (MonadIO)
 
+import Data.Matrix
 import Data.Vector (ifoldl)
 
 import Types as T
@@ -164,6 +167,15 @@ genMessage r f m = do
   tex <- SDL.createTextureFromSurface r surface
   SDL.freeSurface surface
   pure (tex, fromIntegral <$> size)
+
+-- Access things in a matrix
+getItem :: Matrix a -> V2 Int -> Maybe a
+getItem m (V2 x y) = safeGet (x+1) (y+1) m
+
+-- Easy method of getting a tile from mouse input
+convertToTileCoords :: Matrix Tile -> V2 Int -> Maybe (V2 Int)
+convertToTileCoords m (V2 x y) = const p <$> getItem m p
+  where p = let (V2 w h) = tileSize in V2 (x `div` w) (y `div` h)
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
