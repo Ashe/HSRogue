@@ -7,8 +7,6 @@ module Common
 ( World(..)
 , initWorld
 , System'
-, FPS
-, Direction(..)
 , CharacterList
 , postMessage
 , clearMessages
@@ -42,6 +40,7 @@ import Control.Monad.IO.Class (MonadIO)
 
 import Data.Vector (ifoldl)
 
+import Types as T
 import Components
 import Resources
 import Characters
@@ -54,14 +53,6 @@ makeWorld "World" [''Time, ''WindowSize, ''Messages, ''GameState, ''Textures, ''
 
 -- Easy type synonym for systems
 type System' a = System World a
-
--- Easy FPS 
-type FPS = Int
-
--- Types for Directions
-data Direction = 
-  Up | UpRight | Right | DownRight | Down | DownLeft | Left | UpLeft
-  deriving (Read, Show, Eq, Ord)
 
 -- Easy way of getting all non-player entities
 type CharacterList = [(Character, CellRef, Entity)]
@@ -176,24 +167,24 @@ genMessage r f m = do
 
 -- Conversion from Direction to Int V2
 directionToVect :: Direction -> V2 Int
-directionToVect Common.Up = V2 0 (-1)
+directionToVect T.Up = V2 0 (-1)
 directionToVect UpRight = V2 1 (-1)
-directionToVect Common.Right = V2 1 0
+directionToVect T.Right = V2 1 0
 directionToVect DownRight = V2 1 1
-directionToVect Common.Down = V2 0 1
+directionToVect T.Down = V2 0 1
 directionToVect DownLeft = V2 (-1) 1
-directionToVect Common.Left = V2 (-1) 0
+directionToVect T.Left = V2 (-1) 0
 directionToVect UpLeft = V2 (-1) (-1)
 
 -- Conversion from Int V2 to Direction
 vectToDirection :: V2 Int -> Maybe Direction
-vectToDirection (V2 0 (-1)) = Just Common.Up
+vectToDirection (V2 0 (-1)) = Just T.Up
 vectToDirection (V2 1 (-1)) = Just UpRight
-vectToDirection (V2 1 0) = Just Common.Right
+vectToDirection (V2 1 0) = Just T.Right
 vectToDirection (V2 1 1) = Just DownRight
-vectToDirection (V2 0 1) = Just Common.Down
+vectToDirection (V2 0 1) = Just T.Down
 vectToDirection (V2 (-1) 1) = Just DownLeft
-vectToDirection (V2 (-1) 0) = Just Common.Left
+vectToDirection (V2 (-1) 0) = Just T.Left
 vectToDirection (V2 (-1) (-1)) = Just UpLeft
 vectToDirection _ = Nothing
 

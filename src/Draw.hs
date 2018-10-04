@@ -17,6 +17,7 @@ import Control.Monad.IO.Class(MonadIO)
 import Data.Matrix
 import Data.Vector(ifoldl)
 
+import Types
 import Common
 import Components
 import Resources
@@ -24,12 +25,13 @@ import GameMap
 import Characters
 
 -- Draw everything in the game
-draw :: SDL.Renderer -> FPS -> V2 Int -> System' ()
-draw r fps (V2 gsw gsh) = do
-  WindowSize ws <- get global
+draw :: SDL.Renderer -> FPS -> V2 CInt -> System' ()
+draw r fps ws@(V2 gsw gsh) = do
+  Fonts fonts <- get global
   let V2 wsw _ = let V2 tsw tsh = tileSize in V2 (40 * tsw) (32 * tsh)
   drawGameWorld r
-  drawGameUI r fps $ fromIntegral <$> Rectangle (P $ V2 wsw 0) (V2 (gsw - wsw) gsh)
+  drawGameUI r fonts $ fromIntegral <$> Rectangle (P $ V2 wsw 0) (V2 (gsw - wsw) gsh)
+  drawGameOverlay r fonts fps ws
 
 -- Render the game map as well as any entities in game
 drawGameWorld :: SDL.Renderer -> System' ()
@@ -41,12 +43,17 @@ drawGameWorld r = do
   drawComponents $ renderFloatingTex r
 
 -- Draw the UI within bounds
-drawGameUI :: SDL.Renderer -> FPS -> SDL.Rectangle CInt -> System' ()
-drawGameUI r fps bounds@(SDL.Rectangle (P p@(V2 x y)) d@(V2 w h)) = do
-  Fonts fonts <- get global
+drawGameUI :: SDL.Renderer -> FontMap -> SDL.Rectangle CInt -> System' ()
+drawGameUI r fonts bounds@(SDL.Rectangle (P p@(V2 x y)) d@(V2 w h)) = do
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
   SDL.drawLine r (P p) (P $ p + V2 0 h)
   displayMessages r bounds uiFont
+
+-- Display anything that goes over the main game
+drawGameOverlay :: SDL.Renderer -> FontMap -> FPS -> V2 CInt -> System' ()
+drawGameOverlay r fonts fps ws = do
+  let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
+  drawPrompt r ws (V2 650 300)
   displayFps r fps uiFont
 
 -- Produce a system used for drawing
@@ -113,3 +120,12 @@ displayMessages r (SDL.Rectangle (P anchor) (V2 w h)) (Just f) = do
     (tex, size) <- liftIO $ genMessage r f msg
     liftIO $ SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> size))
     liftIO $ SDL.destroyTexture tex) msgs
+
+-- Draw prompt in the centre of the screen of the selected size
+drawPrompt :: SDL.Renderer -> V2 CInt -> V2 CInt -> System' ()
+drawPrompt r win dim = do
+  let topLeft = P $ fmap (`div` 2) win - fmap (`div` 2) dim
+  rendererDrawColor r $= V4 0 0 0 0
+  SDL.fillRect r $ Just $ SDL.Rectangle topLeft dim
+  rendererDrawColor r $= V4 255 255 255 255
+  SDL.drawRect r $ Just $ SDL.Rectangle topLeft dim

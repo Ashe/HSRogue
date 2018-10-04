@@ -29,7 +29,8 @@ executable HSRogue
                         vector,
                         matrix,
                         text
-  other-modules:        Common,
+  other-modules:        Types,
+                        Common,
                         Components,
                         EventHandler,
                         Draw,

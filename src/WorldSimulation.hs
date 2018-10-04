@@ -18,8 +18,8 @@ import Data.Matrix
 import Data.List(find)
 import Control.Monad(when, unless)
 
-import Common hiding (Left, Right, Down, Up)
-import qualified Common as C
+import Types hiding (Left, Right, Down, Up)
+import Common
 import Components
 import Characters
 import CharacterActions

@@ -17,6 +17,7 @@ import Foreign.C (CInt)
 import Control.Monad
 import System.Exit (exitSuccess)
 
+import Types
 import Common
 import Components
 import EventHandler

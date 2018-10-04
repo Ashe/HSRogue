@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Components
 ( AllComps
@@ -35,6 +34,7 @@ import qualified SDL.Font
 import qualified Data.HashMap.Strict as HM
 import Data.Matrix
 
+import Types
 import Resources
 import Characters
 
@@ -61,11 +61,6 @@ instance Monoid WindowSize where mempty = WindowSize (V2 0 0)
 instance Component WindowSize where type Storage WindowSize = Global WindowSize
 
 -- Global component used for reporting events
-class MessageBit msg where render :: msg -> (String, SDL.Font.Color)
-instance MessageBit String where render msg = (msg, V4 255 255 255 255)
-instance MessageBit (String, SDL.Font.Color) where render msg = msg
-data MBit = forall m. MessageBit m => MBit m 
-
 newtype Messages = Messages [[MBit]]
 instance Semigroup Messages where (<>) = mappend
 instance Monoid Messages where mempty = Messages []
@@ -90,10 +85,9 @@ instance Semigroup Fonts where (<>) = mappend
 instance Monoid Fonts where mempty = Fonts HM.empty
 
 -- Global component used for changing gamestates
-data GameMode = Standard | Look deriving (Show, Eq)
-data GameState = Game GameMode | Interface deriving (Show, Eq)
+newtype GameState = GameState State
 instance Semigroup GameState where (<>) = mappend
-instance Monoid GameState where mempty = Game Standard
+instance Monoid GameState where mempty = GameState $ Game Standard
 instance Component GameState where type Storage GameState = Global GameState
 
 -- Global store of the current game map

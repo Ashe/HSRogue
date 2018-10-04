@@ -13,8 +13,8 @@ import Data.Maybe(isNothing, isJust)
 import Data.List(find)
 import Data.Matrix
 
-import Common hiding (Left, Right, Down, Up)
-import qualified Common as C
+import Types as T
+import Common
 import Components
 import GameMap
 import Characters
@@ -43,7 +43,7 @@ handleMouseEvent :: MouseButtonEventData -> System' ()
 handleMouseEvent (MouseButtonEventData _ bm _ b _ (P p)) =
   case bm of
     Pressed -> do
-      (state :: GameState) <- get global
+      GameState state <- get global
       case state of 
         Game m -> ingameMouseAction m b (fromIntegral <$> p)
         Interface -> pure ()
@@ -90,7 +90,7 @@ pathfindPlayer m dest = do
 -- For the handling keyboard events only
 handleKeyEvent :: KeyboardEventData -> System' ()
 handleKeyEvent ev = do
-  (state :: GameState) <- get global
+  GameState state <- get global
   PlayerReady r <- get global
   let code = keysymKeycode $ keyboardEventKeysym ev
   when r $ case keyboardEventKeyMotion ev of
@@ -112,18 +112,18 @@ data GameIntent
 defaultGameIntents :: [(Keycode, GameIntent)]
 defaultGameIntents = 
   -- Navigation
-  [ (KeycodeUp , Navigate C.Up)
-  , (KeycodeK, Navigate C.Up)
-  , (KeycodeY, Navigate C.UpLeft)
-  , (KeycodeLeft , Navigate C.Left)
-  , (KeycodeH, Navigate C.Left)
-  , (KeycodeB, Navigate C.DownLeft)
-  , (KeycodeDown , Navigate C.Down)
-  , (KeycodeJ, Navigate C.Down)
-  , (KeycodeN, Navigate C.DownRight)
-  , (KeycodeRight , Navigate C.Right)
-  , (KeycodeL, Navigate C.Right)
-  , (KeycodeU, Navigate C.UpRight)
+  [ (KeycodeUp , Navigate T.Up)
+  , (KeycodeK, Navigate T.Up)
+  , (KeycodeY, Navigate T.UpLeft)
+  , (KeycodeLeft , Navigate T.Left)
+  , (KeycodeH, Navigate T.Left)
+  , (KeycodeB, Navigate T.DownLeft)
+  , (KeycodeDown , Navigate T.Down)
+  , (KeycodeJ, Navigate T.Down)
+  , (KeycodeN, Navigate T.DownRight)
+  , (KeycodeRight , Navigate T.Right)
+  , (KeycodeL, Navigate T.Right)
+  , (KeycodeU, Navigate T.UpRight)
 
   -- Other functions
   , (KeycodeSemicolon, ToggleLook)
@@ -157,7 +157,7 @@ toggleLook :: GameMode -> System' ()
 toggleLook m = do
   let isLook = m == Look
   modify global (\(a :: GameState) -> 
-    if isLook then Game Standard else Game Look)
+    GameState $ if isLook then Game Standard else Game Look)
   ls :: [(Reticule, Entity)] <- getAll
   [(Player, CellRef p)] <- getAll 
   let r = (Reticule $ not isLook, Position (V2 0 0), CellRef p)
