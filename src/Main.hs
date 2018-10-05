@@ -11,8 +11,6 @@ import SDL(($=))
 import qualified SDL
 import qualified SDL.Image(quit)
 import qualified SDL.Font
-import Data.Fixed
-import Foreign.C (CInt)
 
 import Control.Monad
 import System.Exit (exitSuccess)
@@ -23,7 +21,6 @@ import Components
 import EventHandler
 import Draw
 import WorldSimulation
-import ActionStep
 import Resources
 import GameMap
 import Characters
@@ -39,21 +36,21 @@ initialise conf r t f = void $ do
   set global $ Fonts $ createResourceMap f
   set global $ GameMap $ generateIdentityMap (V2 40 32)
   set global $ Relationships defaultRelationships
-  newEntity
+  void $ newEntity
     ( Player
     , Position playerPos
     , CellRef playerCellRef
-    , Character "Ashe" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
+    , Character $ CharacterInfo "Ashe" 200 0 0 initialStats initialCombatStats "Player" Defensive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 16 16)) (V2 16 16)))
-  newEntity
+  void $ newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 10)
-    , Character "Chum" 200 0 0 initialStats initialCombatStats "Edgelords" Defensive Nothing
+    , Character $ CharacterInfo "Chum" 200 0 0 initialStats initialCombatStats "Edgelords" Defensive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 64)) (V2 16 16)))
-  newEntity
+  void $ newEntity
     ( Position (V2 0 0)
     , CellRef (V2 8 15)
-    , Character "Tum" 200 0 0 initialStats initialCombatStats "Edgelords" Aggressive Nothing
+    , Character $ CharacterInfo "Tum" 200 0 0 initialStats initialCombatStats "Edgelords" Aggressive Nothing
     , Sprite "Assets/sprites.png" (SDL.Rectangle (P (V2 112 16)) (V2 16 16)))
   readyPlayer
 

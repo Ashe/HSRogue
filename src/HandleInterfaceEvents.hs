@@ -9,35 +9,24 @@ import Apecs hiding (Map)
 import SDL hiding (get)
 import SDL.Font
 
-import Control.Monad(when, unless, void, forM_)
-import Control.Monad.IO.Class
-import Data.Maybe(isNothing, isJust)
-import Data.List(find)
-import Data.Matrix
-
 import Types as T
 import Common
 import Components
-import GameMap
-import Characters
-import CharacterActions
-import WorldSimulation
-import ActionStep
 
 -- For keyboard events that  take place in the game
-interfaceAction :: InterfaceMode -> Keycode -> System' ()
-interfaceAction mode k = 
+interfaceAction :: InterfaceMode -> GameMode -> Keycode -> System' ()
+interfaceAction mode gameMode k = 
   let intent = lookup k defaultInterfaceIntents in
     case intent of
       Just Exit -> do
         let col :: SDL.Font.Color = V4 100 100 255 255
         postMessage [MBit ("Resuming Game.", col)]
-        set global $ GameState $ Game Standard
+        set global $ GameState $ Game gameMode
       _ -> pure ()
 
 -- Do something in game in response to the mouse
-interfaceActionWithMouse :: InterfaceMode -> MouseButton -> V2 Int -> System' ()
-interfaceActionWithMouse mode b p = pure ()
+interfaceActionWithMouse :: InterfaceMode -> GameMode -> MouseButton -> V2 Int -> System' ()
+interfaceActionWithMouse mode gameMode b p = pure ()
 
 -- Use context specific bindings to ascertain intent
 data InterfaceIntent

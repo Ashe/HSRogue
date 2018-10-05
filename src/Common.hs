@@ -34,19 +34,15 @@ import Apecs
 import SDL hiding (get, Vector, Renderer)
 import qualified SDL
 import SDL.Font
-import Foreign.C
 import Data.HashMap.Strict as HM
 import Data.Text(Text, pack)
 import Control.Monad(void, foldM_)
 import Control.Monad.IO.Class (MonadIO)
 
 import Data.Matrix
-import Data.Vector (ifoldl)
 
 import Types as T
 import Components
-import Resources
-import Characters
 
 -- Uses templateHaskell to create the data 'World'
 -- also creates initWorld
@@ -85,10 +81,10 @@ spawnFloatingText s c (V2 x y) = do
       let font = HM.lookup "Assets/Roboto-Regular.ttf" fonts in
         case font of
           Just f -> do
-            (tex, size) <- genSolidText r f c s
+            (tex, tsize) <- genSolidText r f c s
             let ht = let (V2 t _) = tileSize in fromIntegral t * 0.5
-                center = let V2 w _ = size in x + ht - (w / 2)
-            void $ newEntity (FloatingTex tex size, Position (V2 center y))
+                center = let V2 w _ = tsize in x + ht - (w / 2)
+            void $ newEntity (FloatingTex tex tsize, Position (V2 center y))
           _ -> pure ()
     _ -> pure ()
 
@@ -105,12 +101,12 @@ floatTooltips dt =
 
 -- Get the popup colour based on health left
 getHealthColour :: Int -> Int -> SDL.Font.Color
-getHealthColour h max 
+getHealthColour h maxH 
   | percent > 0.75 = V4 255 255 255 255
   | percent > 0.5 = V4 255 255 0 255
   | percent > 0.25 = V4 255 165 0 255
   | otherwise = V4 255 0 0 255
-  where percent = fromIntegral h / fromIntegral max
+  where percent = fromIntegral h / fromIntegral maxH
 
 
 -- Examine whatever is on the tile at position
@@ -149,24 +145,24 @@ getTextFromMessage = foldl (\t (MBit n) -> let (txt,_) = render n in t ++ txt) "
 genMessage :: SDL.Renderer -> SDL.Font.Font -> [MBit] -> IO (SDL.Texture, V2 Double)
 genMessage r f m = do
   let plainText = getTextFromMessage m
-  (width, height) <- SDL.Font.size f $ Data.Text.pack plainText
-  let size = fromIntegral <$> V2 width height
+  (wi, hei) <- SDL.Font.size f $ Data.Text.pack plainText
+  let fsize = fromIntegral <$> V2 wi hei
   pixelformat <- SDL.masksToPixelFormat 16 (V4 0 0 0 0)
-  surface <- SDL.createRGBSurface size pixelformat
+  surface <- SDL.createRGBSurface fsize pixelformat
 
   foldM_ (\p (MBit next) -> do
     let (txt, col) = render next
         text = Data.Text.pack txt
     (bitw, _) <- SDL.Font.size f text
     txtSurface <- SDL.Font.solid f col text
-    SDL.surfaceBlit txtSurface Nothing surface (Just $ P (V2 p 0))
+    void $ SDL.surfaceBlit txtSurface Nothing surface (Just $ P (V2 p 0))
     SDL.freeSurface txtSurface
     pure $ p + fromIntegral bitw
     ) 0 m
 
   tex <- SDL.createTextureFromSurface r surface
   SDL.freeSurface surface
-  pure (tex, fromIntegral <$> size)
+  pure (tex, fromIntegral <$> fsize)
 
 -- Access things in a matrix
 getItem :: Matrix a -> V2 Int -> Maybe a

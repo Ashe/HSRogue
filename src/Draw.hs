@@ -10,9 +10,7 @@ import SDL.Font
 
 import Foreign.C
 import Data.HashMap.Strict as HM
-import Data.Text(Text, pack)
-import Control.Monad(unless, when, void)
-import Control.Monad.IO.Class(MonadIO)
+import Control.Monad(when)
 
 import Data.Matrix
 import Data.Vector(ifoldl)
@@ -20,9 +18,6 @@ import Data.Vector(ifoldl)
 import Types
 import Common
 import Components
-import Resources
-import GameMap
-import Characters
 
 -- Draw everything in the game
 draw :: SDL.Renderer -> FPS -> V2 CInt -> System' ()
@@ -44,7 +39,7 @@ drawGameWorld r = do
 
 -- Draw the UI within bounds
 drawGameUI :: SDL.Renderer -> FontMap -> SDL.Rectangle CInt -> System' ()
-drawGameUI r fonts bounds@(SDL.Rectangle (P p@(V2 x y)) d@(V2 w h)) = do
+drawGameUI r fonts bounds@(SDL.Rectangle (P p) (V2 _ h)) = do
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
   SDL.drawLine r (P p) (P $ p + V2 0 h)
   displayMessages r bounds uiFont
@@ -55,7 +50,7 @@ drawGameOverlay r fonts fps ws = do
   let uiFont = HM.lookup "Assets/Roboto-Regular.ttf" fonts
   GameState state <- get global
   case state of
-    Interface PauseScreen ->
+    Interface PauseScreen _ ->
       drawPrompt r ws (V2 650 300)
     _ -> pure ()
   displayFps r fps uiFont
@@ -101,7 +96,7 @@ renderTileMessy r _ _ = pure ()
 
 -- Display FPS
 displayFps :: SDL.Renderer -> Int -> Maybe SDL.Font.Font -> System' ()
-displayFps r fps Nothing = pure ()
+displayFps _ _ Nothing = pure ()
 displayFps r fps (Just f) = do
   (tex, size) <- genSolidText r f (V4 255 255 255 255) ("FPS: " ++ show fps)
   SDL.copy r tex Nothing (Just $ round <$> Rectangle (P $ V2 0 0) size)
@@ -109,18 +104,18 @@ displayFps r fps (Just f) = do
 
 -- Render floating text
 renderFloatingTex :: SDL.Renderer -> FloatingTex -> Position -> IO ()
-renderFloatingTex r (FloatingTex tex size) (Position pos) = 
- SDL.copy r tex Nothing (Just $ round <$> Rectangle (P pos) size)
+renderFloatingTex r (FloatingTex tex tsize) (Position pos) = 
+ SDL.copy r tex Nothing (Just $ round <$> Rectangle (P pos) tsize)
 
 -- Display all messages
 displayMessages :: SDL.Renderer -> SDL.Rectangle CInt -> Maybe SDL.Font.Font -> System' ()
 displayMessages _ _ Nothing = pure ()
-displayMessages r (SDL.Rectangle (P anchor) (V2 w h)) (Just f) = do
+displayMessages r (SDL.Rectangle (P anchor) _) (Just f) = do
   Messages messages <- get global
   let msgs = zip messages [0..]
   mapM_ (\(msg, index) -> do
-    (tex, size) <- liftIO $ genMessage r f msg
-    SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> size))
+    (tex, msize) <- liftIO $ genMessage r f msg
+    SDL.copy r tex Nothing (Just $ Rectangle (P $ anchor + V2 2 (index * 14)) (round <$> msize))
     SDL.destroyTexture tex) msgs
 
 -- Draw prompt in the centre of the screen of the selected size

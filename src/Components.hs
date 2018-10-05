@@ -22,6 +22,7 @@ module Components
 , Reticule(..)
 , Position(..)
 , CellRef(..)
+, Character(..)
 , Examine(..)
 , Sprite(..)
 , FloatingTex(..)
@@ -30,12 +31,10 @@ module Components
 import Apecs
 import SDL hiding (Vector, Renderer)
 import qualified SDL
-import qualified SDL.Font
 import qualified Data.HashMap.Strict as HM
 import Data.Matrix
 
 import Types
-import Resources
 import Characters
 
 -- Easy type for all non-global, non-player components
@@ -130,6 +129,7 @@ data Sprite = Sprite String (Rectangle Int)
 instance Component Sprite where type Storage Sprite = Map Sprite
 
 -- Character elements of the player and NPCs
+newtype Character = Character CharacterInfo
 instance Component Character where type Storage Character = Map Character
 
 -- Descriptions of entities when looking

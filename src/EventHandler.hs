@@ -7,20 +7,11 @@ module EventHandler
 import Apecs hiding (Map)
 import SDL hiding (get)
 
-import Control.Monad(when, unless, void, forM_)
-import Control.Monad.IO.Class
-import Data.Maybe(isNothing, isJust)
-import Data.List(find)
-import Data.Matrix
+import Control.Monad(when)
 
 import Types as T
 import Common
 import Components
-import GameMap
-import Characters
-import CharacterActions
-import WorldSimulation
-import ActionStep
 
 import HandleGameEvents
 import HandleInterfaceEvents
@@ -50,7 +41,7 @@ handleMouseEvent (MouseButtonEventData _ bm _ b _ (P p)) =
       let mousepos = fromIntegral <$> p
       case state of 
         Game m -> gameActionWithMouse m b mousepos
-        Interface mode -> interfaceActionWithMouse mode b mousepos
+        Interface mode prevMode -> interfaceActionWithMouse mode prevMode b mousepos
     Released -> pure ()
 
 -- For the handling keyboard events only
@@ -63,7 +54,7 @@ handleKeyEvent ev = do
     Pressed ->
       case state of
         Game mode -> gameAction mode code
-        Interface mode -> interfaceAction mode code
+        Interface mode prevMode -> interfaceAction mode prevMode code
     Released -> pure ()
 
 -- Use GameState to determine the context of input

@@ -5,15 +5,12 @@ module GameMap
 , generateIdentityMap
 ) where
 
-import Apecs
 import SDL hiding (Vector)
 import Data.Graph.AStar
 
-import Data.List
 import Data.HashSet (HashSet, fromList)
 import Data.Matrix
 import Data.Vector(imap, ifoldl, toList)
-import Debug.Trace (traceShow)
 
 import Common
 import Components

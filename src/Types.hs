@@ -16,14 +16,12 @@ module Types
 , Direction(..)
 ) where
 
-import Apecs
 import SDL hiding (Vector, Renderer)
-import qualified SDL
 import qualified SDL.Font
 import Data.HashMap.Strict
 
 -- Data for managing flow of the game
-data State = Game GameMode | Interface InterfaceMode deriving (Show, Eq)
+data State = Game GameMode | Interface InterfaceMode GameMode deriving (Show, Eq)
 
 -- Manage the game
 data GameMode = Standard | Look deriving (Show, Eq)

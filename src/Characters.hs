@@ -1,5 +1,5 @@
 module Characters
-( Character(..)
+( CharacterInfo(..)
 , Stats(..)
 , CombatStats(..)
 , Faction
@@ -23,8 +23,8 @@ import Data.HashMap.Strict as HM
 -- Stats: Character stats
 -- Combat stats: A description of the character's current state based on stats and items
 -- Attitude: How the character will respond to the player's presence
-data Character = 
-  Character
+data CharacterInfo = 
+  CharacterInfo
     { name :: String
     , health :: Int
     , regenTimer :: Int

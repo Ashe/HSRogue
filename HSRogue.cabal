@@ -33,6 +33,8 @@ executable HSRogue
                         Common,
                         Components,
                         EventHandler,
+                        HandleGameEvents,
+                        HandleInterfaceEvents,
                         Draw,
                         WorldSimulation,
                         ActionStep,

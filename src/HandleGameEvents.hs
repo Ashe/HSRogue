@@ -9,20 +9,14 @@ import Apecs hiding (Map)
 import SDL hiding (get)
 import SDL.Font
 
-import Control.Monad(when, unless, void, forM_)
-import Control.Monad.IO.Class
-import Data.Maybe(isNothing, isJust)
-import Data.List(find)
+import Control.Monad(when, void)
 import Data.Matrix
 
 import Types as T
 import Common
 import Components
 import GameMap
-import Characters
-import CharacterActions
 import WorldSimulation
-import ActionStep
 
 -- For keyboard events that  take place in the game
 gameAction :: GameMode -> Keycode -> System' ()
@@ -39,13 +33,13 @@ gameAction mode k =
           Just Wait -> do
             postMessage [MBit "You wait.."]
             playerActionStep 100
-          Just PauseGame -> openPauseMenu
+          Just PauseGame -> openPauseMenu mode
           _ -> pure ()
       Look -> 
         case intent of
           Just (Navigate dir) -> moveReticule dir
           Just ToggleLook -> toggleLook mode
-          Just PauseGame -> openPauseMenu
+          Just PauseGame -> openPauseMenu mode
           _ -> pure ()
 
 -- Do something in game in response to the mouse
@@ -108,8 +102,7 @@ defaultGameIntents =
 toggleLook :: GameMode -> System' ()
 toggleLook m = do
   let isLook = m == Look
-  modify global (\(a :: GameState) -> 
-    GameState $ if isLook then Game Standard else Game Look)
+  set global $ GameState $ if isLook then Game Standard else Game Look
   ls :: [(Reticule, Entity)] <- getAll
   [(Player, CellRef p)] <- getAll 
   let r = (Reticule $ not isLook, Position (V2 0 0), CellRef p)
@@ -120,8 +113,7 @@ toggleLook m = do
 -- Move the reticule for looking or aiming purposes
 moveReticule :: Direction -> System' ()
 moveReticule dir = 
-  cmapM (\(Reticule _, CellRef p@(V2 x y)) -> do
-    ls :: [(CellRef, Examine)] <- getAll
+  cmapM (\(Reticule _, CellRef p) -> do
     let pos = p + directionToVect dir
     examinePos pos
     pure $ CellRef pos)
@@ -138,8 +130,8 @@ pathfindPlayer m dest = do
     _ -> pure ()
 
 -- Pause the game
-openPauseMenu :: System' ()
-openPauseMenu = do
+openPauseMenu :: GameMode -> System' ()
+openPauseMenu mode = do
   let col :: SDL.Font.Color = V4 100 100 255 255
   postMessage [MBit ("Pausing Game.", col)]
-  set global $ GameState $ Interface PauseScreen
+  set global $ GameState $ Interface PauseScreen mode
