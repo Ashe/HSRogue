@@ -16,7 +16,7 @@ You can use the Vim keys (`HJKL` for left, down, up and right, with `YUBN` for d
 
 I decided to release the code to the public because of the performance issues I'm having. If you render a lot of text or render more wall tiles to draw *X*s all over the screen, FPS drops dramatically. This limits the scope of the game quite a bit unfortunately. I believe this is for a number of things, but I suspect that SDL2's lack of sprite batching is to blame along with Haskell not being as fast as C++. Still, there may be a way to fix this, and maybe I'll start development again privately if there's some light shed. Until then, I'm going to make non-graphical Haskell projects.
 
-> **To reproduce performance issues:* Head to `Main.hs` line 37. Instead of the function `generateIdentityMap`, instead use `generateBlankMap` and pass in `Solid` to fill the entire map with walls and therefore create more things to render. Function definitions shown below for more info.
+> **To reproduce performance issues:** Head to `Main.hs` line 37. Instead of the function `generateIdentityMap`, instead use `generateBlankMap` and pass in `Solid` to fill the entire map with walls and therefore create more things to render. Function definitions shown below for more info.
 
 ```hs
 -- Easy function for a blank map
