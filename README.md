@@ -6,7 +6,7 @@
 This is an attempt at a game in Haskell in the form of a short demo. It uses an ECS library called [Apecs](https://hackage.haskell.org/package/apecs) along with a wrapper for [SDL2](https://hackage.haskell.org/package/sdl2). I wanted to experience first hand the benefits and shortcomings of using a functional programming language for video games.
 
 ## How did I make this?
-I blogged heavily about my use of Apecs in this demo. You can find it on my blog [here](https://blog.aas.sh/posts/2018-09-10-Making-A-Game-With-Haskell-And-Apecs/).
+I blogged heavily about my use of Apecs in this demo. You can find it on my blog [here](https://aas.sh/blog/making-a-game-with-haskell-and-apecs).
 
 ## How do I play?
 
