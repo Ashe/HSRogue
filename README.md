@@ -1,6 +1,6 @@
 # HSRogue Demo
 
-![Preview.gif](Preview.gif)
+![Gameplay](/img/gameplay.gif)
 
 ## What is this?
 This is an attempt at a game in Haskell in the form of a short demo. It uses an ECS library called [Apecs](https://hackage.haskell.org/package/apecs) along with a wrapper for [SDL2](https://hackage.haskell.org/package/sdl2). 
